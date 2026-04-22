@@ -2,9 +2,9 @@ import { GoogleGenAI } from "@google/genai";
 
 // Standard Gemini initialization
 const getAiKey = () => {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) {
-    console.warn("[REvuBOT] GEMINI_API_KEY is missing. AI features will be disabled. Check your environment variables.");
+  const key = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+  if (!key || key === "MY_GEMINI_API_KEY") {
+    console.warn("[REvuBOT] GEMINI_API_KEY is missing or using placeholder. AI features will be disabled.");
   }
   return key || "AI_KEY_MISSING";
 };
