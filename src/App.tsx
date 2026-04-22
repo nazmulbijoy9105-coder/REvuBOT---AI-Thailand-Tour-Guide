@@ -6,7 +6,7 @@ import {
   Navigate,
   useLocation
 } from 'react-router-dom';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, User, signInAnonymously } from 'firebase/auth';
 import { auth } from './lib/firebase';
 
 // Pages
@@ -25,9 +25,18 @@ export default function App() {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(loading => false);
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
+      if (!u) {
+        try {
+          await signInAnonymously(auth);
+        } catch (err) {
+          console.error("Anonymous auth failed:", err);
+          setLoading(false);
+        }
+      } else {
+        setUser(u);
+        setLoading(false);
+      }
     });
     return unsubscribe;
   }, []);
@@ -44,23 +53,14 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<Layout user={user} />}>
-          <Route path="/" element={user ? <Chat /> : <Navigate to="/chat" />} />
-          <Route 
-            path="/chat" 
-            element={user ? <Chat /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/chat/:id" 
-            element={user ? <Chat /> : <Navigate to="/login" />} 
-          />
+          <Route path="/" element={<Chat />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/chat/:id" element={<Chat />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/destinations" element={<Destinations />} />
           <Route path="/budget" element={<Budget />} />
-          <Route path="/planner" element={user ? <Planner /> : <Navigate to="/login" />} />
-          <Route 
-            path="/admin" 
-            element={user ? <Admin /> : <Navigate to="/login" />} 
-          />
+          <Route path="/planner" element={<Planner />} />
+          <Route path="/admin" element={user ? <Admin /> : <Navigate to="/login" />} />
         </Route>
         <Route 
           path="/login" 

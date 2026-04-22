@@ -13,6 +13,7 @@ import {
   getDocs,
   where
 } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { generateTravelAdvice } from '../lib/ai';
 import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X, Mic, MicOff } from 'lucide-react';
@@ -166,15 +167,23 @@ export default function Chat() {
 
   // Load user conversations
   React.useEffect(() => {
-    if (!auth.currentUser) return;
-    const q = query(
-      collection(db, 'conversations'),
-      where('userId', '==', auth.currentUser.uid),
-      orderBy('updatedAt', 'desc')
-    );
-    return onSnapshot(q, (snap) => {
-      setConversations(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (!user) return;
+      
+      const q = query(
+        collection(db, 'conversations'),
+        where('userId', '==', user.uid),
+        orderBy('updatedAt', 'desc')
+      );
+      
+      const snapUnsub = onSnapshot(q, (snap) => {
+        setConversations(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      });
+
+      return snapUnsub;
     });
+
+    return unsub;
   }, []);
 
   // Load current conversation messages
@@ -200,7 +209,11 @@ export default function Chat() {
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if ((!input.trim() && !selectedImage) || !auth.currentUser) return;
+    if (!auth.currentUser) {
+      console.warn("Direct Access: Neural link initializing...");
+      return;
+    }
+    if (!input.trim() && !selectedImage) return;
 
     let convId = id;
     const userMsg = input.trim() || (selectedImage ? "[Awaiting Visual Analysis]" : "");

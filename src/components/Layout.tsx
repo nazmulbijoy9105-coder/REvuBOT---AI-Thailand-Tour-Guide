@@ -30,7 +30,7 @@ export default function Layout({ user }: { user: User | null }) {
           <nav className="hidden md:flex items-center gap-8">
             <Link to="/chat" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">AI Guide Chat</Link>
             <Link to="/faq" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">Safety Intel</Link>
-            {user && (
+            {user && !user.isAnonymous && user.email === 'admin@revubot.com' && (
               <>
                 <Link to="/admin" className="px-4 py-2 bg-panel text-white rounded-lg text-xs font-bold shadow-sm hover:bg-slate-800 transition-all">Curator Dashboard</Link>
               </>
@@ -38,7 +38,7 @@ export default function Layout({ user }: { user: User | null }) {
           </nav>
 
           <div className="flex items-center gap-4">
-            {user ? (
+            {user && !user.isAnonymous && (
                <div className="flex items-center gap-3 p-1.5 bg-slate-50 rounded-xl border border-border">
                  <div className="hidden lg:block px-2">
                    <p className="text-xs font-bold text-ink leading-none">{user.email?.split('@')[0]}</p>
@@ -48,10 +48,6 @@ export default function Layout({ user }: { user: User | null }) {
                    <LogOut className="w-5 h-5 text-ink-muted" />
                  </button>
                </div>
-            ) : (
-               <Link to="/login" className="btn-primary">
-                 Join now
-               </Link>
             )}
             
             <button className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -95,13 +91,13 @@ export default function Layout({ user }: { user: User | null }) {
           >
             <Link to="/chat" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">AI Guide Chat</Link>
             <Link to="/faq" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Safety Intel</Link>
-            {user && (
+            {user && !user.isAnonymous && user.email === 'admin@revubot.com' && (
               <>
                 <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold text-brand">Curator Dashboard</Link>
               </>
             )}
             <div className="mt-auto">
-              {!user && <Link to="/login" onClick={() => setIsMenuOpen(false)} className="btn-primary w-full text-center block">Login</Link>}
+              {/* Login option removed for direct access experience */}
             </div>
           </motion.div>
         )}
