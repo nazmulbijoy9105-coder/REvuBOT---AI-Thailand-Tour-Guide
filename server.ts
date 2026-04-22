@@ -34,10 +34,14 @@ async function startServer() {
 
   // Proxy for AI Chat to hide keys if necessary, or manage Grok integration
   app.post("/api/chat", async (req, res) => {
-    const geminiKey = process.env.GEMINI_API_KEY;
-    const grokKey = process.env.GROK_API_KEY;
+    const rawGeminiKey = (process.env.GEMINI_API_KEY || "").trim();
+    const rawGrokKey = (process.env.GROK_API_KEY || "").trim();
+    
+    // Filter out potential placeholder values
+    const geminiKey = rawGeminiKey && !rawGeminiKey.includes("YOUR_API_KEY") ? rawGeminiKey : null;
+    const grokKey = rawGrokKey && !rawGrokKey.includes("YOUR_API_KEY") ? rawGrokKey : null;
 
-    logger.info(`Chat Request Received. GeminiKey: ${geminiKey ? "PRESENT" : "MISSING"}, GrokKey: ${grokKey ? "PRESENT" : "MISSING"}`);
+    logger.info(`Chat Request Received. GeminiKey: ${geminiKey ? "VALIDATED" : "MISSING/INVALID"}, GrokKey: ${grokKey ? "VALIDATED" : "MISSING/INVALID"}`);
 
     try {
       const { message, history, language, imageData, mimeType } = req.body;
@@ -111,8 +115,17 @@ async function startServer() {
 
     } catch (error: any) {
       logger.error("Chat Engine Critical Error", { message: error.message, stack: error.stack });
-      res.status(500).json({ 
-        error: "Internal neural processing error",
+      
+      let clientError = "Internal neural processing error";
+      let statusCode = 500;
+
+      if (error.message?.includes("API key not valid")) {
+        clientError = "INVALID API KEY: The Gemini API Key provided in settings is rejected by Google. Please check your credentials.";
+        statusCode = 401;
+      }
+
+      res.status(statusCode).json({ 
+        error: clientError,
         requestId: Math.random().toString(36).substring(7)
       });
     }
