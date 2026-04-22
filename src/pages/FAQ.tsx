@@ -2,7 +2,7 @@ import React from 'react';
 import { collection, query, getDocs, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { HelpCircle, ChevronRight, MapPin, Landmark, Train, ShieldAlert } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const CATEGORIES = [
   { id: 'visa', name: 'Visa & Entry', icon: ShieldAlert, color: 'text-red-500' },

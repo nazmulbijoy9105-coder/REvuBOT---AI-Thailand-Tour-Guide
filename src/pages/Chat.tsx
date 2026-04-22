@@ -289,7 +289,9 @@ export default function Chat() {
                 {m.sender === 'user' ? 'ME' : 'RB'}
               </div>
               <div className={`p-4 rounded-2xl text-sm leading-relaxed ${m.sender === 'user' ? 'bg-panel text-white shadow-md' : 'bg-white border border-slate-200 shadow-sm text-slate-800'}`}>
-                 <ReactMarkdown className="prose prose-slate prose-sm text-inherit max-w-none prose-p:leading-relaxed prose-li:my-1">{m.content}</ReactMarkdown>
+                 <div className="prose prose-slate prose-sm text-inherit max-w-none prose-p:leading-relaxed prose-li:my-1">
+                   <ReactMarkdown>{m.content}</ReactMarkdown>
+                 </div>
               </div>
             </motion.div>
           ))}

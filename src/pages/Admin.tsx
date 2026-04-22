@@ -2,7 +2,7 @@ import React from 'react';
 import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { Shield, Plus, Trash2, Edit, Save, X, Users, MessageSquare } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Admin() {
   const [isAdmin, setIsAdmin] = React.useState(false);
