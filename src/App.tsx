@@ -60,11 +60,11 @@ export default function App() {
           <Route path="/destinations" element={<Destinations />} />
           <Route path="/budget" element={<Budget />} />
           <Route path="/planner" element={<Planner />} />
-          <Route path="/admin" element={user ? <Admin /> : <Navigate to="/login" />} />
+          <Route path="/admin" element={user && !user.isAnonymous && user.email === 'admin@revubot.com' ? <Admin /> : <Navigate to="/chat" />} />
         </Route>
         <Route 
           path="/login" 
-          element={!user ? <Login /> : <Navigate to="/chat" />} 
+          element={!user || user.isAnonymous ? <Login /> : <Navigate to="/chat" />} 
         />
       </Routes>
     </BrowserRouter>
