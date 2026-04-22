@@ -28,6 +28,7 @@ export default function Layout({ user }: { user: User | null }) {
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
+            <Link to="/destinations" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">Destinations</Link>
             <Link to="/faq" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">Help Center</Link>
             <Link to="/budget" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">Budget Ops</Link>
             {user && (
@@ -81,6 +82,7 @@ export default function Layout({ user }: { user: User | null }) {
           <div className="grid grid-cols-2 gap-8">
              <div className="flex flex-col gap-2">
                <span className="text-white text-[10px] uppercase tracking-widest font-black mb-2 opacity-50">Intelligence</span>
+               <Link to="/destinations" className="hover:text-brand transition-colors">Sector Intel</Link>
                <Link to="/planner" className="hover:text-brand transition-colors">Mission Strategy</Link>
                <Link to="/budget" className="hover:text-brand transition-colors">Currency Intel</Link>
              </div>
@@ -106,6 +108,7 @@ export default function Layout({ user }: { user: User | null }) {
             exit={{ opacity: 0, y: -20 }}
             className="md:hidden fixed inset-0 top-16 bg-white z-40 p-6 flex flex-col gap-6"
           >
+            <Link to="/destinations" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Destinations</Link>
             <Link to="/faq" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Help Center</Link>
             <Link to="/budget" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Budget Ops</Link>
             {user && (
