@@ -1,9 +1,15 @@
 import { GoogleGenAI } from "@google/genai";
 
 // Standard Gemini initialization
-// Note: process.env.GEMINI_API_KEY is replaced by Vite at build time
-// per the vite.config.ts define block.
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const getAiKey = () => {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) {
+    console.warn("[REvuBOT] GEMINI_API_KEY is missing. AI features will be disabled. Check your environment variables.");
+  }
+  return key || "AI_KEY_MISSING";
+};
+
+const ai = new GoogleGenAI({ apiKey: getAiKey() });
 
 export async function generateTravelAdvice(prompt: string, history: any[] = [], language: string = 'en') {
   try {
