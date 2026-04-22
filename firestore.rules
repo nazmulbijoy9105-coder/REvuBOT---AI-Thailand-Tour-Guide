@@ -15,11 +15,13 @@ service cloud.firestore {
     // User Rules
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create: if isOwner(userId) && 
         request.resource.data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) &&
         request.resource.data.role == 'user';
-      allow update: if isOwner(userId) && 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['preferredLanguage', 'email']);
+      allow update: if (isOwner(userId) && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['preferredLanguage', 'email'])) || 
+        (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']));
     }
 
     // Conversation Rules
@@ -56,7 +58,7 @@ service cloud.firestore {
     
     // Auth logic for admins
     match /admins/{adminId} {
-      allow read: if isSignedIn();
+      allow read, write: if isAdmin();
     }
   }
 }

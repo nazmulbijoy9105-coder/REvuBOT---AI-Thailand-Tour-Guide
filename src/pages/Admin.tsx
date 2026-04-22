@@ -45,6 +45,30 @@ export default function Admin() {
     fetchData();
   };
 
+  const handleToggleRole = async (userId: string, currentRole: string) => {
+    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    try {
+      // 1. Update user document
+      await updateDoc(doc(db, 'users', userId), { role: newRole });
+      
+      // 2. Sync admins collection
+      if (newRole === 'admin') {
+        await setDoc(doc(db, 'admins', userId), { 
+          uid: userId, 
+          addedAt: new Date().toISOString(),
+          addedBy: auth.currentUser?.uid
+        });
+      } else {
+        await deleteDoc(doc(db, 'admins', userId));
+      }
+      
+      fetchData();
+    } catch (err) {
+      console.error("Failed to update role:", err);
+      alert("Permission denied. You cannot modify roles.");
+    }
+  };
+
   const handleDeleteFaq = async (id: string) => {
     await deleteDoc(doc(db, 'faqs', id));
     fetchData();
@@ -101,12 +125,22 @@ export default function Admin() {
                   </thead>
                   <tbody className="divide-y divide-ink/5">
                      {users.map(u => (
-                        <tr key={u.id} className="hover:bg-ink/[0.01]">
+                        <tr key={u.id} className="hover:bg-ink/[0.01] group">
                            <td className="px-6 py-4 font-medium">{u.email}</td>
                            <td className="px-6 py-4">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold ${u.role === 'admin' ? 'bg-gold/10 text-gold' : 'bg-ink/5 text-ink/50'}`}>
-                                 {u.role}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                 <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold ${u.role === 'admin' ? 'bg-gold/10 text-gold' : 'bg-ink/5 text-ink/50'}`}>
+                                    {u.role}
+                                 </span>
+                                 {u.id !== auth.currentUser?.uid && (
+                                    <button 
+                                       onClick={() => handleToggleRole(u.id, u.role)}
+                                       className="text-[9px] uppercase tracking-tighter font-black text-ink/20 hover:text-gold opacity-0 group-hover:opacity-100 transition-all border border-transparent hover:border-gold/20 px-2 py-1 rounded"
+                                    >
+                                       Promote/Demote
+                                    </button>
+                                 )}
+                              </div>
                            </td>
                            <td className="px-6 py-4 text-ink/40">{new Date(u.createdAt).toLocaleDateString()}</td>
                         </tr>
