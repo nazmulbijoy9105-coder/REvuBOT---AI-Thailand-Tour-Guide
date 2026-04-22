@@ -142,8 +142,18 @@ async function startServer() {
     // Explicit SPA fallback for dev
     app.use('*', async (req, res, next) => {
       const url = req.originalUrl;
+      
+      // Safety: Log out the request for debugging 404s
+      logger.info(`Neural Router: Processing ${url}`);
+
       // Skip API and files with extensions
-      if (url.startsWith('/api') || url.includes('.')) return next();
+      if (url.startsWith('/api') || url.includes('.')) {
+        // Special case for favicon.ico to prevent annoying 404s
+        if (url.includes('favicon.ico')) {
+          return res.status(204).end();
+        }
+        return next();
+      }
       
       try {
         let template = await (await import('fs')).readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
