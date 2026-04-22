@@ -257,8 +257,14 @@ export default function Chat() {
         fullContent += chunk.text;
         await updateDoc(aiMsgRef, { content: fullContent });
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Neural Error:", err);
+      // Create a system error message in the chat
+      await addDoc(collection(db, `conversations/${convId}/messages`), {
+        sender: 'ai',
+        content: "⚠️ **SIGNAL INTERRUPT**: The Neural Engine encountered an error. This usually happens if the API key is missing or invalid. Please check your configuration.",
+        timestamp: serverTimestamp()
+      });
     } finally {
       setIsTyping(false);
     }
