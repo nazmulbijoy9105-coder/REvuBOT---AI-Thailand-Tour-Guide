@@ -5,6 +5,13 @@ import cors from "cors";
 import "dotenv/config";
 import { GoogleGenAI } from "@google/genai";
 
+// Standardized DevOps Logger
+const logger = {
+  info: (msg: string, metadata?: any) => console.log(`[INFO] [${new Date().toISOString()}] ${msg}`, metadata || ""),
+  warn: (msg: string, metadata?: any) => console.warn(`[WARN] [${new Date().toISOString()}] ${msg}`, metadata || ""),
+  error: (msg: string, metadata?: any) => console.error(`[ERROR] [${new Date().toISOString()}] ${msg}`, metadata || ""),
+};
+
 // Note: Environment variables like GEMINI_API_KEY are managed by AI Studio.
 // Grok API Key can be added to Secrets and accessed via process.env.GROK_API_KEY.
 
@@ -17,7 +24,12 @@ async function startServer() {
 
   // API Routes
   app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", message: "REvuBOT API is running" });
+    res.json({ 
+      status: "ok", 
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      engine: "REvuBOT-Neural-v3"
+    });
   });
 
   // Proxy for AI Chat to hide keys if necessary, or manage Grok integration
@@ -25,13 +37,13 @@ async function startServer() {
     const geminiKey = process.env.GEMINI_API_KEY;
     const grokKey = process.env.GROK_API_KEY;
 
-    console.log(`[REvuBOT] Chat Request Received. GeminiKey: ${geminiKey ? "PRESENT" : "MISSING"}, GrokKey: ${grokKey ? "PRESENT" : "MISSING"}`);
+    logger.info(`Chat Request Received. GeminiKey: ${geminiKey ? "PRESENT" : "MISSING"}, GrokKey: ${grokKey ? "PRESENT" : "MISSING"}`);
 
     try {
       const { message, history, language, imageData, mimeType } = req.body;
       
       if (geminiKey) {
-        console.log("[REvuBOT] Initializing Gemini Neural Engine...");
+        logger.info("Initializing Gemini Neural Engine...");
         const ai = new GoogleGenAI({ apiKey: geminiKey });
         
         const contents = [
@@ -92,17 +104,16 @@ async function startServer() {
       }
 
       // If no keys found
-      console.warn("[REvuBOT] No valid API keys found in environment.");
+      logger.warn("No valid API keys found in environment.");
       res.status(401).json({ 
-        error: "GEMINI_API_KEY is missing or invalid. Please configure it in your environment variables.",
-        tip: "In AI Studio, ensure the Gemini API key is enabled in settings." 
+        error: "Neural Engine not configured. Please supply GEMINI_API_KEY.",
       });
 
     } catch (error: any) {
-      console.error("[REvuBOT] Chat Engine Error:", error);
+      logger.error("Chat Engine Critical Error", { message: error.message, stack: error.stack });
       res.status(500).json({ 
-        error: error.message || "Internal server error during neural processing",
-        details: error.stack
+        error: "Internal neural processing error",
+        requestId: Math.random().toString(36).substring(7)
       });
     }
   });
@@ -156,8 +167,17 @@ async function startServer() {
     }
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`REvuBOT server running on http://localhost:${PORT}`);
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    logger.info(`REvuBOT Production Server running on http://localhost:${PORT}`);
+  });
+
+  // Graceful Shutdown Logic
+  process.on('SIGTERM', () => {
+    logger.info('SIGTERM received. Shutting down gracefully...');
+    server.close(() => {
+      logger.info('Server process terminated.');
+      process.exit(0);
+    });
   });
 }
 
