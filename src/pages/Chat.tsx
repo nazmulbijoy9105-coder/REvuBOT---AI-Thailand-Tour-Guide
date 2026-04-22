@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { generateTravelAdvice } from '../lib/ai';
-import { Send, Plus, History, Globe2, Bot, User, Trash2 } from 'lucide-react';
+import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 
@@ -94,9 +94,27 @@ export default function Chat() {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
   const [language, setLanguage] = React.useState('en');
   const [isTyping, setIsTyping] = React.useState(false);
+  const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   const t = LOCALIZATION[language] || LOCALIZATION.en;
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const clearImage = () => {
+    setSelectedImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   // Load user conversations
   React.useEffect(() => {
@@ -138,13 +156,16 @@ export default function Chat() {
 
     let convId = id;
     const userMsg = input.trim();
+    const imageData = selectedImage ? selectedImage.split(',')[1] : undefined; // Remove data:image/base64 prefix
+    
     setInput('');
+    clearImage();
 
     // Create new conversation if none selected
     if (!convId) {
       const convDoc = await addDoc(collection(db, 'conversations'), {
         userId: auth.currentUser.uid,
-        title: userMsg.slice(0, 30) + '...',
+        title: imageData ? "Visual Intercept" : (userMsg.slice(0, 30) + '...'),
         updatedAt: serverTimestamp(),
         createdAt: serverTimestamp()
       });
@@ -152,16 +173,17 @@ export default function Chat() {
       navigate(`/chat/${convId}`);
     }
 
-    // Save user message
+    // Save user message (with image indicator for UI)
     await addDoc(collection(db, `conversations/${convId}/messages`), {
       sender: 'user',
       content: userMsg,
+      hasImage: !!imageData,
       timestamp: serverTimestamp()
     });
 
     await updateDoc(doc(db, 'conversations', convId), {
       updatedAt: serverTimestamp(),
-      lastMessage: userMsg
+      lastMessage: imageData ? "[Visual Intelligence Captured]" : userMsg
     });
 
     // Get AI Response
@@ -172,7 +194,7 @@ export default function Chat() {
         parts: [{ text: m.content }]
       }));
       
-      const stream = await generateTravelAdvice(userMsg, history, language);
+      const stream = await generateTravelAdvice(userMsg, history, language, imageData);
       let fullContent = '';
       
       // Store AI message body
@@ -311,18 +333,58 @@ export default function Chat() {
         {/* Input Area */}
         <div className="p-6 bg-white border-t border-slate-100">
           <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto">
+            <AnimatePresence>
+              {selectedImage && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="mb-4 relative inline-block group"
+                >
+                  <img 
+                    src={selectedImage} 
+                    alt="Intercept preview" 
+                    className="h-32 rounded-2xl border-4 border-white shadow-xl ring-1 ring-slate-200" 
+                    referrerPolicy="no-referrer"
+                  />
+                  <button 
+                    type="button"
+                    onClick={clearImage}
+                    className="absolute -top-2 -right-2 bg-panel text-white p-1 rounded-full shadow-lg hover:bg-red-500 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="flex gap-3 items-center bg-slate-100 p-2 rounded-2xl border border-slate-200 shadow-inner">
+               <input 
+                 type="file"
+                 ref={fileInputRef}
+                 onChange={handleImageSelect}
+                 accept="image/*"
+                 className="hidden"
+               />
+               <button 
+                 type="button"
+                 onClick={() => fileInputRef.current?.click()}
+                 className={`p-2 rounded-xl transition-all ${selectedImage ? 'text-brand bg-white' : 'text-slate-400 hover:text-brand hover:bg-white'}`}
+               >
+                 <ImageIcon className="w-6 h-6" />
+               </button>
+               
                <div className="flex-1 bg-transparent px-4 py-2 text-sm outline-none font-medium placeholder:text-slate-400">
                   <input 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder={t.placeholder}
-                    className="w-full bg-transparent border-none focus:ring-0 outline-none"
+                    placeholder={selectedImage ? "Describe this image for analysis..." : t.placeholder}
+                    className="w-full bg-transparent border-none focus:ring-0 outline-none font-bold"
                   />
                </div>
                <button 
                   type="submit"
-                  disabled={!input.trim() || isTyping}
+                  disabled={(!input.trim() && !selectedImage) || isTyping}
                   className="bg-brand hover:bg-brand-hover text-panel font-black py-2.5 px-8 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-brand/20 disabled:opacity-50 disabled:shadow-none"
                >
                  {t.transmit}

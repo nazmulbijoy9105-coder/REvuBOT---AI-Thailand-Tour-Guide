@@ -32,6 +32,7 @@ export default function Layout({ user }: { user: User | null }) {
             <Link to="/budget" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">Budget Ops</Link>
             {user && (
               <>
+                <Link to="/planner" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">Mission Builder</Link>
                 <Link to="/chat" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">Guide Chat</Link>
                 <Link to="/admin" className="px-4 py-2 bg-panel text-white rounded-lg text-xs font-bold shadow-sm hover:bg-slate-800 transition-all">Curator Dashboard</Link>
               </>
@@ -80,7 +81,7 @@ export default function Layout({ user }: { user: User | null }) {
           <div className="grid grid-cols-2 gap-8">
              <div className="flex flex-col gap-2">
                <span className="text-white text-[10px] uppercase tracking-widest font-black mb-2 opacity-50">Intelligence</span>
-               <Link to="/faq" className="hover:text-brand transition-colors">Visa Portals</Link>
+               <Link to="/planner" className="hover:text-brand transition-colors">Mission Strategy</Link>
                <Link to="/budget" className="hover:text-brand transition-colors">Currency Intel</Link>
              </div>
              <div className="flex flex-col gap-2">
@@ -109,6 +110,7 @@ export default function Layout({ user }: { user: User | null }) {
             <Link to="/budget" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Budget Ops</Link>
             {user && (
               <>
+                <Link to="/planner" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Mission Builder</Link>
                 <Link to="/chat" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Guide Chat</Link>
                 <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold text-brand">Admin</Link>
               </>
