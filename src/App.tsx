@@ -16,6 +16,7 @@ import Login from './pages/Login';
 import Chat from './pages/Chat';
 import Admin from './pages/Admin';
 import FAQ from './pages/FAQ';
+import Budget from './pages/Budget';
 
 export default function App() {
   const [user, setUser] = React.useState<User | null>(null);
@@ -43,6 +44,7 @@ export default function App() {
         <Route element={<Layout user={user} />}>
           <Route path="/" element={<Home />} />
           <Route path="/faq" element={<FAQ />} />
+          <Route path="/budget" element={<Budget />} />
           <Route 
             path="/chat" 
             element={user ? <Chat /> : <Navigate to="/login" />} 
