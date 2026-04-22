@@ -2,6 +2,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import cors from "cors";
+import "dotenv/config";
 
 // Note: Environment variables like GEMINI_API_KEY are managed by AI Studio.
 // Grok API Key can be added to Secrets and accessed via process.env.GROK_API_KEY.
@@ -20,17 +21,20 @@ async function startServer() {
 
   // Proxy for AI Chat to hide keys if necessary, or manage Grok integration
   app.post("/api/chat", async (req, res) => {
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const grokKey = process.env.GROK_API_KEY;
+
+    console.log(`[REvuBOT] Chat Request Received. GeminiKey: ${geminiKey ? "PRESENT" : "MISSING"}, GrokKey: ${grokKey ? "PRESENT" : "MISSING"}`);
+
     try {
       const { message, history, language, imageData, mimeType } = req.body;
       
-      const geminiKey = process.env.GEMINI_API_KEY;
-      const grokKey = process.env.GROK_API_KEY;
-      
       if (geminiKey) {
+        console.log("[REvuBOT] Initializing Gemini Neural Engine...");
         const { GoogleGenAI } = await import("@google/genai");
         const genAI = new GoogleGenAI(geminiKey);
         const model = genAI.getGenerativeModel({ 
-          model: "gemini-3-flash-preview",
+          model: "gemini-1.5-flash", // Use stable model name
           systemInstruction: `You are REvuBOT, a helpful Thailand tour guide. 
           Support languages: English, Thai, Hindi, Sinhala. 
           Always prioritize the user's selected language: ${language}.
@@ -80,14 +84,19 @@ async function startServer() {
         return res.json({ reply: data.choices[0].message.content });
       }
 
-      // If no Grok key, we emphasize that Gemini should be used on frontend 
-      // or we can proxy here. But instructions say "Always call Gemini API from the frontend".
-      // So I'll return a 404 or a prompt to use the frontend direct call if no Grok key.
-      res.status(400).json({ error: "Grok API Key not configured. Please use GEMINI from frontend." });
+      // If no keys found
+      console.warn("[REvuBOT] No valid API keys found in environment.");
+      res.status(401).json({ 
+        error: "GEMINI_API_KEY is missing or invalid. Please configure it in your environment variables.",
+        tip: "In AI Studio, ensure the Gemini API key is enabled in settings." 
+      });
 
-    } catch (error) {
-      console.error("Chat error:", error);
-      res.status(500).json({ error: "Internal server error" });
+    } catch (error: any) {
+      console.error("[REvuBOT] Chat Engine Error:", error);
+      res.status(500).json({ 
+        error: error.message || "Internal server error during neural processing",
+        details: error.stack
+      });
     }
   });
 

@@ -238,7 +238,11 @@ export default function Chat() {
     // Get AI Response
     setIsTyping(true);
     try {
-      const history = messages.map(m => ({
+      // Limit history to last 10 messages to stay within token limits and maintain performance
+      const historyThreshold = 10;
+      const recentMessages = messages.slice(-historyThreshold);
+      
+      const history = recentMessages.map(m => ({
         role: m.sender === 'user' ? 'user' : 'model',
         parts: [{ text: m.content }]
       }));
@@ -259,10 +263,19 @@ export default function Chat() {
       }
     } catch (err: any) {
       console.error("Neural Error:", err);
-      // Create a system error message in the chat
+      
+      // Determine the specific error message to show
+      let errorMessage = "⚠️ **SIGNAL INTERRUPT**: The Neural Engine encountered a critical error. This usually happens if the API key is missing or invalid.";
+      
+      if (err.message?.includes("exceeded max tokens")) {
+        errorMessage = "⚠️ **OVERLOAD**: The message history has exceeded the current buffer capacity. Please try again with a shorter prompt.";
+      } else if (err.message?.includes("401")) {
+        errorMessage = "⚠️ **ACCESS DENIED**: The Neural Key is invalid or not configured. Please verify your Environment Variables.";
+      }
+      
       await addDoc(collection(db, `conversations/${convId}/messages`), {
         sender: 'ai',
-        content: "⚠️ **SIGNAL INTERRUPT**: The Neural Engine encountered an error. This usually happens if the API key is missing or invalid. Please check your configuration.",
+        content: errorMessage,
         timestamp: serverTimestamp()
       });
     } finally {
