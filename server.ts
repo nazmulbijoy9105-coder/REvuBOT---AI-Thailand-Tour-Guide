@@ -21,13 +21,43 @@ async function startServer() {
   // Proxy for AI Chat to hide keys if necessary, or manage Grok integration
   app.post("/api/chat", async (req, res) => {
     try {
-      const { message, history, language } = req.body;
+      const { message, history, language, imageData, mimeType } = req.body;
       
-      // Default to Gemini (process.env.GEMINI_API_KEY is available server-side too)
-      // Actually per instructions, I should call Gemini from frontend usually,
-      // but for "Full Backend APIs" requested by user, I'll provide an endpoint.
-      
+      const geminiKey = process.env.GEMINI_API_KEY;
       const grokKey = process.env.GROK_API_KEY;
+      
+      if (geminiKey) {
+        const { GoogleGenAI } = await import("@google/genai");
+        const genAI = new GoogleGenAI(geminiKey);
+        const model = genAI.getGenerativeModel({ 
+          model: "gemini-3-flash-preview",
+          systemInstruction: `You are REvuBOT, a helpful Thailand tour guide. 
+          Support languages: English, Thai, Hindi, Sinhala. 
+          Always prioritize the user's selected language: ${language}.
+          Be professional, high-intelligence, and safety-conscious.`
+        });
+
+        const contents = [
+          ...history,
+          { 
+            role: 'user', 
+            parts: [
+              { text: message },
+              ...(imageData ? [{ inlineData: { data: imageData, mimeType } }] : [])
+            ] 
+          }
+        ];
+
+        const result = await model.generateContentStream({ contents });
+        
+        res.setHeader('Content-Type', 'text/plain');
+        for await (const chunk of result.stream) {
+          const chunkText = chunk.text();
+          res.write(chunkText);
+        }
+        res.end();
+        return;
+      }
       
       if (grokKey) {
         // Implementation for Grok if requested

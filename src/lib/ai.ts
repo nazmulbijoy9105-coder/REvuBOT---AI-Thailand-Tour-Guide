@@ -1,51 +1,38 @@
-import { GoogleGenAI } from "@google/genai";
-
-// Standard Gemini initialization as per platform guidelines
-const apiKey = process.env.GEMINI_API_KEY;
-const ai = apiKey && apiKey !== "MY_GEMINI_API_KEY" ? new GoogleGenAI({ apiKey }) : null;
-
-if (!ai) {
-  console.error("[REvuBOT] GEMINI_API_KEY is missing. AI features will be limited.");
-}
-
-export async function generateTravelAdvice(prompt: string, history: any[] = [], language: string = 'en', imageData?: string, mimeType: string = "image/jpeg") {
-  if (!ai) {
-    throw new Error("Neural Engine Offline: API Key Missing.");
-  }
+/**
+ * REvuBOT AI Client
+ * Proxies requests to the server to ensure maximum security for API keys.
+ */
+export async function* generateTravelAdvice(prompt: string, history: any[] = [], language: string = 'en', imageData?: string, mimeType: string = "image/jpeg") {
   try {
-    const isAuto = language === 'auto';
-    const systemInstruction = `You are REvuBOT, the ultimate Thailand tour guide. 
-    
-    TACTICAL MODE: ${imageData ? "VISUAL ANALYSIS" : "TEXTUAL Q&A"}.
-    ${imageData ? "If an image is provided, focus on translating text (if a menu/sign) or providing cultural context (if a landmark)." : ""}
-    
-    LANGUAGE: ${isAuto ? "AUTO-DETECT" : language}.
-    Support: en, th, hi, si.
-    
-    EXPERTISE: Thai culture, visa, transit, food.`;
-
-    const contents = [
-      ...history,
-      { 
-        role: 'user', 
-        parts: [
-          { text: prompt },
-          ...(imageData ? [{ inlineData: { data: imageData, mimeType } }] : [])
-        ] 
-      }
-    ];
-
-    const chat = ai.models.generateContentStream({
-      model: "gemini-3-flash-preview",
-      contents,
-      config: {
-        systemInstruction
-      }
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        message: prompt, 
+        history, 
+        language, 
+        imageData, 
+        mimeType 
+      }),
     });
 
-    return chat;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Neural Link Failed: ${errorText}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("Neural Stream unreachable.");
+
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      yield { text: chunk };
+    }
   } catch (error) {
-    console.error("Gemini Error:", error);
+    console.error("Neural Error:", error);
     throw error;
   }
 }
