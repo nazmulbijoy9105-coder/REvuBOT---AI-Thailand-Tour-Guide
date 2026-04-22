@@ -18,6 +18,73 @@ import { Send, Plus, History, Globe2, Bot, User, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 
+const LOCALIZATION: Record<string, any> = {
+  en: {
+    newSession: "New Session",
+    recentLogs: "Recent Logs",
+    interfaceLang: "Interface Language",
+    neuralEngine: "Neural Engine Online",
+    opsBase: "Operations Base",
+    placeholder: "Ask about hotels, transport, or Thai culture...",
+    transmit: "Transmit",
+    initContact: "Initialize Contact",
+    welcomeDesc: "Ready for Thailand deployment. Signal your requirements regarding transport, culture, or government compliance.",
+    contextualIntel: "Contextual Intelligence",
+    safetyDirective: "Safety Directive",
+    safetyDesc: "Monsoon season alert: Heavy precipitation expected in Central Thailand.",
+    active: "Active",
+    signal: "Initial signal..."
+  },
+  th: {
+    newSession: "เริ่มการสนทนาใหม่",
+    recentLogs: "ประวัติการสนทนา",
+    interfaceLang: "ภาษาของอินเทอร์เฟซ",
+    neuralEngine: "ระบบอัจฉริยะออนไลน์",
+    opsBase: "คลังความรู้",
+    placeholder: "สอบถามเกี่ยวกับโรงแรม การเดินทาง หรือวัฒนธรรมไทย...",
+    transmit: "ส่งข้อความ",
+    initContact: "เริ่มการเชื่อมต่อ",
+    welcomeDesc: "พร้อมสำหรับการแนะนำข้อมูลท่องเที่ยวไทย โปรดระบุความต้องการของคุณเกี่ยวกับการเดินทาง วัฒนธรรม หรือกฎระเบียบต่างๆ",
+    contextualIntel: "ข้อมูลเชิงลึก",
+    safetyDirective: "คำสั่งด้านความปลอดภัย",
+    safetyDesc: "คำเตือนฤดูมรสุม: คาดว่าจะมีฝนตกหนักในพื้นที่ภาคกลางของประเทศไทย",
+    active: "ออนไลน์",
+    signal: "กำลังรอสัญญาณ..."
+  },
+  hi: {
+    newSession: "नया सत्र",
+    recentLogs: "हाल के लॉग",
+    interfaceLang: "इंटरफ़ेस भाषा",
+    neuralEngine: "न्यूरल इंजन ऑनलाइन",
+    opsBase: "संचालन आधार",
+    placeholder: "होटल, परिवहन या थाई संस्कृति के बारे में पूछें...",
+    transmit: "भेजें",
+    initContact: "संपर्क प्रारंभ करें",
+    welcomeDesc: "थाईलैंड तैनाती के लिए तैयार। परिवहन, संस्कृति या सरकारी अनुपालन के संबंध में अपनी आवश्यकताओं का संकेत दें।",
+    contextualIntel: "प्रासंगिक बुद्धिमत्ता",
+    safetyDirective: "सुरक्षा निर्देश",
+    safetyDesc: "मानसून सीजन अलर्ट: मध्य थाईलैंड में भारी बारिश की उम्मीद है।",
+    active: "सक्रिय",
+    signal: "प्रारंभिक संकेत..."
+  },
+  si: {
+    newSession: "නව සැසිය",
+    recentLogs: "මෑත සටහන්",
+    interfaceLang: "අතුරුමුහුණත් භාෂාව",
+    neuralEngine: "පද්ධතිය සක්‍රීයයි",
+    opsBase: "තොරතුරු මධ්‍යස්ථානය",
+    placeholder: "හෝටල්, ප්‍රවාහනය හෝ තායි සංස්කෘතිය ගැන විමසන්න...",
+    transmit: "යවන්න",
+    initContact: "සම්බන්ධතාවය අරඹන්න",
+    welcomeDesc: "තායිලන්ත සංචාරක තොරතුරු සඳහා සූදානම්. ප්‍රවාහනය, සංස්කෘතිය හෝ නීතිමය කරුණු පිළිබඳ ඔබේ ගැටලු යොමු කරන්න.",
+    contextualIntel: "වැදගත් තොරතුරු",
+    safetyDirective: "ආරක්ෂක උපදෙස්",
+    safetyDesc: "මෝසම් වැසි අනතුරු ඇඟවීම: මධ්‍යම තායිලන්තයට තද වැසි අපේක්ෂා කෙරේ.",
+    active: "සක්‍රීය",
+    signal: "සම්බන්ධ වෙමින්..."
+  }
+};
+
 export default function Chat() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -28,6 +95,8 @@ export default function Chat() {
   const [language, setLanguage] = React.useState('en');
   const [isTyping, setIsTyping] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  const t = LOCALIZATION[language] || LOCALIZATION.en;
 
   // Load user conversations
   React.useEffect(() => {
@@ -142,12 +211,12 @@ export default function Chat() {
             className="w-full flex items-center justify-center gap-2 py-3 bg-brand text-panel rounded-xl text-xs font-black uppercase tracking-widest hover:bg-brand-hover transition-all shadow-lg shadow-brand/20"
           >
             <Plus className="w-4 h-4" />
-            New Session
+            {t.newSession}
           </button>
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-1">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-3 ml-2">Recent Logs</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-3 ml-2">{t.recentLogs}</p>
           {conversations.map(conv => (
             <button
               key={conv.id}
@@ -156,17 +225,17 @@ export default function Chat() {
             >
               <div className="flex justify-between items-start mb-1">
                 <span className={`font-bold truncate ${id === conv.id ? 'text-white' : 'text-slate-400'}`}>{conv.title}</span>
-                <span className="text-[10px] opacity-30 font-bold uppercase tracking-tighter shrink-0 ml-2">Active</span>
+                <span className="text-[10px] opacity-30 font-bold uppercase tracking-tighter shrink-0 ml-2">{t.active}</span>
               </div>
-              <p className={`text-[11px] truncate ${id === conv.id ? 'text-slate-300' : 'text-slate-500'}`}>{conv.lastMessage || 'Initial signal...'}</p>
+              <p className={`text-[11px] truncate ${id === conv.id ? 'text-slate-300' : 'text-slate-500'}`}>{conv.lastMessage || t.signal}</p>
             </button>
           ))}
         </div>
 
         <div className="p-4 border-t border-slate-800 bg-panel-muted/30">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">Interface Language</p>
-          <div className="flex gap-2 justify-between">
-            {['EN', 'TH', 'HI', 'SI'].map(lang => (
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">{t.interfaceLang}</p>
+          <div className="flex flex-wrap gap-2 justify-between">
+            {['AUTO', 'EN', 'TH', 'HI', 'SI'].map(lang => (
               <button 
                 key={lang}
                 onClick={() => setLanguage(lang.toLowerCase())}
@@ -186,7 +255,7 @@ export default function Chat() {
           <div className="flex items-center gap-4">
              <div className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-full text-[10px] font-black tracking-widest border border-green-100 uppercase">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                Neural Engine Online
+                {t.neuralEngine}
              </div>
              <span className="text-slate-200">|</span>
              <h2 className="text-xs font-black uppercase tracking-widest text-slate-500">Thailand Support Ops</h2>
@@ -199,8 +268,8 @@ export default function Chat() {
             <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto space-y-6">
                 <div className="w-16 h-16 bg-brand rounded-2xl flex items-center justify-center text-panel font-black text-2xl shadow-xl shadow-brand/20">RB</div>
                 <div>
-                   <h3 className="text-xl font-black uppercase tracking-tighter mb-2">Initialize Contact</h3>
-                   <p className="text-sm text-slate-500 leading-relaxed font-medium">Ready for Thailand deployment. Signal your requirements regarding transport, culture, or government compliance.</p>
+                   <h3 className="text-xl font-black uppercase tracking-tighter mb-2">{t.initContact}</h3>
+                   <p className="text-sm text-slate-500 leading-relaxed font-medium">{t.welcomeDesc}</p>
                 </div>
                 <div className="flex flex-wrap justify-center gap-2 pt-4">
                   <div onClick={() => setInput("Bangkok transit guide")} className="cursor-pointer px-4 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-black text-slate-600 uppercase tracking-widest hover:border-brand transition-all shadow-sm">🥘 Local Food</div>
@@ -245,7 +314,7 @@ export default function Chat() {
                   <input 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask about hotels, transport, or Thai culture..."
+                    placeholder={t.placeholder}
                     className="w-full bg-transparent border-none focus:ring-0 outline-none"
                   />
                </div>
@@ -254,7 +323,7 @@ export default function Chat() {
                   disabled={!input.trim() || isTyping}
                   className="bg-brand hover:bg-brand-hover text-panel font-black py-2.5 px-8 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-brand/20 disabled:opacity-50 disabled:shadow-none"
                >
-                 Transmit
+                 {t.transmit}
                </button>
             </div>
           </form>
@@ -264,7 +333,7 @@ export default function Chat() {
       {/* Right Sidebar - Info */}
       <aside className="hidden lg:flex w-80 bg-slate-50 border-l border-slate-200 p-6 flex-col gap-6">
           <section>
-             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Contextual Intelligence</h3>
+             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">{t.contextualIntel}</h3>
              <div className="space-y-3">
                 <InfoCard icon="✈️" title="Flight Status" status="On Time" desc="BKK arrivals monitored in real-time." />
                 <InfoCard icon="🏨" title="Accommodation" status="Siam Kempinski" desc="Check-in automated protocols active." />
@@ -272,7 +341,7 @@ export default function Chat() {
           </section>
 
           <section className="flex-1 overflow-y-auto">
-             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Operations Base</h3>
+             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">{t.opsBase}</h3>
              <div className="space-y-2">
                 <div onClick={() => setInput("Tourist Police Number")} className="p-3 rounded-xl bg-white border border-slate-200 text-[11px] font-bold text-slate-700 cursor-pointer hover:border-brand hover:shadow-sm transition-all uppercase tracking-tighter">Emergency Contacts</div>
                 <div onClick={() => setInput("How to use Grab")} className="p-3 rounded-xl bg-white border border-slate-200 text-[11px] font-bold text-slate-700 cursor-pointer hover:border-brand hover:shadow-sm transition-all uppercase tracking-tighter">Taxi Signal Apps</div>
@@ -281,8 +350,8 @@ export default function Chat() {
           </section>
 
           <div className="bg-panel text-white rounded-2xl p-5 border border-slate-800 shadow-xl">
-             <p className="text-[10px] font-black text-brand uppercase tracking-widest mb-2">Safety Directive</p>
-             <p className="text-[11px] leading-relaxed opacity-70 font-medium">Monsoon season alert: Heavy precipitation expected in Central Thailand. Exercise caution near waterways.</p>
+             <p className="text-[10px] font-black text-brand uppercase tracking-widest mb-2">{t.safetyDirective}</p>
+             <p className="text-[11px] leading-relaxed opacity-70 font-medium">{t.safetyDesc}</p>
           </div>
       </aside>
     </div>
