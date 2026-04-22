@@ -509,10 +509,10 @@ export default function Chat() {
                 </button>
                <button 
                   type="submit"
-                  disabled={(!input.trim() && !selectedImage) || isTyping}
+                  disabled={(!input.trim() && !selectedImage) || isTyping || !auth.currentUser}
                   className="bg-brand hover:bg-brand-hover text-panel font-black py-2.5 px-8 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-brand/20 disabled:opacity-50 disabled:shadow-none"
                >
-                 {t.transmit}
+                 {!auth.currentUser ? "Neural Lock" : t.transmit}
                </button>
             </div>
           </form>
