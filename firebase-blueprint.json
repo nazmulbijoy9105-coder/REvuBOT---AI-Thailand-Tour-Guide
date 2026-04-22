@@ -1,0 +1,73 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information and preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "preferredLanguage": { "type": "string", "enum": ["en", "th", "hi", "si"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Conversation": {
+      "title": "Chat Conversation",
+      "description": "A booking or support conversation session.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "lastMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title"]
+    },
+    "Message": {
+      "title": "Chat Message",
+      "description": "A single message in a conversation.",
+      "type": "object",
+      "properties": {
+        "sender": { "type": "string", "enum": ["user", "ai"] },
+        "content": { "type": "string" },
+        "language": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sender", "content", "timestamp"]
+    },
+    "FAQ": {
+      "title": "Standard FAQ",
+      "description": "Predefined tourist information.",
+      "type": "object",
+      "properties": {
+        "question": { "type": "string" },
+        "answer": { "type": "string" },
+        "category": { "type": "string", "enum": ["visa", "transport", "culture", "emergency"] },
+        "language": { "type": "string" }
+      },
+      "required": ["question", "answer", "category", "language"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/conversations/{convId}": {
+      "schema": "Conversation",
+      "description": "Top level conversation metadata"
+    },
+    "/conversations/{convId}/messages/{msgId}": {
+      "schema": "Message",
+      "description": "Individual messages within a conversation"
+    },
+    "/faqs/{faqId}": {
+      "schema": "FAQ",
+      "description": "Tourist FAQs"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { 
+      return isSignedIn() && 
+      exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    function isValidId(id) { return id is string && id.size() <= 128; }
+
+    // --- Users ---
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId 
+        && request.resource.data.role == 'user'; // Users can't make themselves admins
+      allow update: if isOwner(userId) 
+        && request.resource.data.role == resource.data.role; // Role is immutable for users
+      allow update: if isAdmin();
+    }
+
+    // --- Conversations ---
+    match /conversations/{convId} {
+      allow get: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && isOwner(resource.data.userId);
+      allow delete: if isAdmin();
+
+      // --- Messages ---
+      match /messages/{msgId} {
+        allow read: if isSignedIn() && (isOwner(get(/databases/$(database)/documents/conversations/$(convId)).data.userId) || isAdmin());
+        allow create: if isSignedIn() && isOwner(get(/databases/$(database)/documents/conversations/$(convId)).data.userId);
+      }
+    }
+
+    // --- FAQs ---
+    match /faqs/{faqId} {
+      allow read: if true; // Public access to tourist FAQs
+      allow write: if isAdmin();
+    }
+  }
+}
