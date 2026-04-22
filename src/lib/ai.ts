@@ -11,7 +11,7 @@ const getAiKey = () => {
 
 const ai = new GoogleGenAI({ apiKey: getAiKey() });
 
-export async function generateTravelAdvice(prompt: string, history: any[] = [], language: string = 'en', imageData?: string) {
+export async function generateTravelAdvice(prompt: string, history: any[] = [], language: string = 'en', imageData?: string, mimeType: string = "image/jpeg") {
   try {
     const isAuto = language === 'auto';
     const systemInstruction = `You are REvuBOT, the ultimate Thailand tour guide. 
@@ -30,7 +30,7 @@ export async function generateTravelAdvice(prompt: string, history: any[] = [], 
         role: 'user', 
         parts: [
           { text: prompt },
-          ...(imageData ? [{ inlineData: { data: imageData, mimeType: "image/jpeg" } }] : [])
+          ...(imageData ? [{ inlineData: { data: imageData, mimeType } }] : [])
         ] 
       }
     ];

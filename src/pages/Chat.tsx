@@ -152,11 +152,12 @@ export default function Chat() {
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!input.trim() || !auth.currentUser) return;
+    if ((!input.trim() && !selectedImage) || !auth.currentUser) return;
 
     let convId = id;
-    const userMsg = input.trim();
-    const imageData = selectedImage ? selectedImage.split(',')[1] : undefined; // Remove data:image/base64 prefix
+    const userMsg = input.trim() || (selectedImage ? "[Awaiting Visual Analysis]" : "");
+    const imageData = selectedImage ? selectedImage.split(',')[1] : undefined;
+    const mimeType = selectedImage ? selectedImage.match(/data:([^;]+);/)?.[1] : undefined;
     
     setInput('');
     clearImage();
@@ -194,7 +195,7 @@ export default function Chat() {
         parts: [{ text: m.content }]
       }));
       
-      const stream = await generateTravelAdvice(userMsg, history, language, imageData);
+      const stream = await generateTravelAdvice(userMsg, history, language, imageData, mimeType);
       let fullContent = '';
       
       // Store AI message body
@@ -311,6 +312,12 @@ export default function Chat() {
                 {m.sender === 'user' ? 'ME' : 'RB'}
               </div>
               <div className={`p-4 rounded-2xl text-sm leading-relaxed ${m.sender === 'user' ? 'bg-panel text-white shadow-md' : 'bg-white border border-slate-200 shadow-sm text-slate-800'}`}>
+                 {m.hasImage && (
+                   <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60">
+                     <ImageIcon className="w-3 h-3" />
+                     Visual Intel Captured
+                   </div>
+                 )}
                  <div className="prose prose-slate prose-sm text-inherit max-w-none prose-p:leading-relaxed prose-li:my-1">
                    <ReactMarkdown>{m.content}</ReactMarkdown>
                  </div>
@@ -369,9 +376,10 @@ export default function Chat() {
                <button 
                  type="button"
                  onClick={() => fileInputRef.current?.click()}
-                 className={`p-2 rounded-xl transition-all ${selectedImage ? 'text-brand bg-white' : 'text-slate-400 hover:text-brand hover:bg-white'}`}
+                 className={`p-2 rounded-xl transition-all flex items-center gap-2 ${selectedImage ? 'text-brand bg-white' : 'text-slate-400 hover:text-brand hover:bg-white'}`}
                >
                  <ImageIcon className="w-6 h-6" />
+                 {!selectedImage && <span className="hidden sm:inline text-[10px] uppercase font-black tracking-widest">Scan Intel</span>}
                </button>
                
                <div className="flex-1 bg-transparent px-4 py-2 text-sm outline-none font-medium placeholder:text-slate-400">
