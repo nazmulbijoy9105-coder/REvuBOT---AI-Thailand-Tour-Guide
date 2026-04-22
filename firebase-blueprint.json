@@ -50,6 +50,19 @@
         "language": { "type": "string" }
       },
       "required": ["question", "answer", "category", "language"]
+    },
+    "Itinerary": {
+      "title": "Travel Itinerary",
+      "description": "Saved travel mission plans.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "meta": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "content"]
     }
   },
   "firestore": {
@@ -68,6 +81,14 @@
     "/faqs/{faqId}": {
       "schema": "FAQ",
       "description": "Tourist FAQs"
+    },
+    "/itineraries/{itineraryId}": {
+      "schema": "Itinerary",
+      "description": "User saved itineraries"
+    },
+    "/admins/{adminId}": {
+      "schema": "object",
+      "description": "Admin white-list"
     }
   }
 }
