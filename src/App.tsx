@@ -44,11 +44,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<Layout user={user} />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/destinations" element={<Destinations />} />
-          <Route path="/budget" element={<Budget />} />
-          <Route path="/planner" element={user ? <Planner /> : <Navigate to="/login" />} />
+          <Route path="/" element={user ? <Chat /> : <Navigate to="/chat" />} />
           <Route 
             path="/chat" 
             element={user ? <Chat /> : <Navigate to="/login" />} 
@@ -57,6 +53,10 @@ export default function App() {
             path="/chat/:id" 
             element={user ? <Chat /> : <Navigate to="/login" />} 
           />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/destinations" element={<Destinations />} />
+          <Route path="/budget" element={<Budget />} />
+          <Route path="/planner" element={user ? <Planner /> : <Navigate to="/login" />} />
           <Route 
             path="/admin" 
             element={user ? <Admin /> : <Navigate to="/login" />} 

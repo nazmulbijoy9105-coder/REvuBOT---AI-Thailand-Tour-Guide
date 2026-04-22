@@ -28,13 +28,10 @@ export default function Layout({ user }: { user: User | null }) {
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
-            <Link to="/destinations" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">Destinations</Link>
-            <Link to="/faq" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">Help Center</Link>
-            <Link to="/budget" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">Budget Ops</Link>
+            <Link to="/chat" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">AI Guide Chat</Link>
+            <Link to="/faq" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">Safety Intel</Link>
             {user && (
               <>
-                <Link to="/planner" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">Mission Builder</Link>
-                <Link to="/chat" className="text-xs font-bold uppercase tracking-widest text-ink-muted hover:text-brand transition-colors">Guide Chat</Link>
                 <Link to="/admin" className="px-4 py-2 bg-panel text-white rounded-lg text-xs font-bold shadow-sm hover:bg-slate-800 transition-all">Curator Dashboard</Link>
               </>
             )}
@@ -69,32 +66,20 @@ export default function Layout({ user }: { user: User | null }) {
       </main>
 
       <footer className="bg-panel text-slate-400 py-12 px-6 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-sm">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 text-sm">
           <div>
             <div className="flex items-center gap-2 text-white mb-4">
               <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-panel font-bold text-xs">RB</div>
-              <span className="text-lg font-bold tracking-tight">REvuBOT</span>
+              <span className="text-lg font-bold tracking-tight">REvuBOT AI</span>
             </div>
             <p className="leading-relaxed max-w-xs opacity-70">
-              The professional choice for international travelers in Thailand. Expert intelligence, real-time safety, local culture.
+              The specialized AI Neural Engine for travelers in Thailand. Expert local intelligence, instant visual analysis, and real-time safety protocols.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-8">
-             <div className="flex flex-col gap-2">
-               <span className="text-white text-[10px] uppercase tracking-widest font-black mb-2 opacity-50">Intelligence</span>
-               <Link to="/destinations" className="hover:text-brand transition-colors">Sector Intel</Link>
-               <Link to="/planner" className="hover:text-brand transition-colors">Mission Strategy</Link>
-               <Link to="/budget" className="hover:text-brand transition-colors">Currency Intel</Link>
-             </div>
-             <div className="flex flex-col gap-2">
-               <span className="text-white text-[10px] uppercase tracking-widest font-black mb-2 opacity-50">Support</span>
-               <span className="hover:text-brand cursor-pointer">Safety Alerts</span>
-               <span className="hover:text-brand cursor-pointer">Thai Etiquette</span>
-             </div>
-          </div>
-          <div className="md:text-right flex flex-col justify-end">
+          <div className="md:text-right flex flex-col justify-center">
+             <p className="text-[10px] uppercase tracking-widest opacity-30 font-bold mb-1 font-mono">Operations Console v3.1.0</p>
              <p className="text-[10px] uppercase tracking-widest opacity-30 font-bold mb-1">Thailand Innovation Hub</p>
-            <span className="text-[10px] uppercase tracking-widest opacity-20">© 2026 REvuBOT Corporation</span>
+             <span className="text-[10px] uppercase tracking-widest opacity-20">© 2026 REvuBOT Neural Network</span>
           </div>
         </div>
       </footer>
@@ -108,14 +93,11 @@ export default function Layout({ user }: { user: User | null }) {
             exit={{ opacity: 0, y: -20 }}
             className="md:hidden fixed inset-0 top-16 bg-white z-40 p-6 flex flex-col gap-6"
           >
-            <Link to="/destinations" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Destinations</Link>
-            <Link to="/faq" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Help Center</Link>
-            <Link to="/budget" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Budget Ops</Link>
+            <Link to="/chat" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">AI Guide Chat</Link>
+            <Link to="/faq" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Safety Intel</Link>
             {user && (
               <>
-                <Link to="/planner" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Mission Builder</Link>
-                <Link to="/chat" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold">Guide Chat</Link>
-                <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold text-brand">Admin</Link>
+                <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold text-brand">Curator Dashboard</Link>
               </>
             )}
             <div className="mt-auto">
