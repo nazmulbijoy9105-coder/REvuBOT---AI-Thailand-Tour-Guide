@@ -1,13 +1,14 @@
 import React from 'react';
-import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
-import { Shield, Plus, Trash2, Edit, Save, X, Users, MessageSquare } from 'lucide-react';
+import { Shield, Plus, Trash2, Edit, Save, X, Users, MessageSquare, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Admin() {
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [users, setUsers] = React.useState<any[]>([]);
   const [faqs, setFaqs] = React.useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = React.useState<any[]>([]);
   const [isAddingFaq, setIsAddingFaq] = React.useState(false);
   const [newFaq, setNewFaq] = React.useState({ question: '', answer: '', category: 'visa', language: 'en' });
 
@@ -29,17 +30,32 @@ export default function Admin() {
   }, []);
 
   const fetchData = async () => {
-    const [uSnap, fSnap] = await Promise.all([
+    const [uSnap, fSnap, aSnap] = await Promise.all([
       getDocs(collection(db, 'users')),
-      getDocs(collection(db, 'faqs'))
+      getDocs(collection(db, 'faqs')),
+      getDocs(query(collection(db, 'audit_logs'), orderBy('timestamp', 'desc'), limit(20)))
     ]);
     setUsers(uSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     setFaqs(fSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    setAuditLogs(aSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+  };
+
+  const logAction = async (action: string, targetId: string, details: string) => {
+    if (!auth.currentUser) return;
+    await addDoc(collection(db, 'audit_logs'), {
+      action,
+      targetId,
+      details,
+      performedBy: auth.currentUser.email,
+      timestamp: serverTimestamp()
+    });
   };
 
   const handleAddFaq = async (e: React.FormEvent) => {
     e.preventDefault();
-    await setDoc(doc(collection(db, 'faqs')), newFaq);
+    const faqRef = doc(collection(db, 'faqs'));
+    await setDoc(faqRef, newFaq);
+    await logAction('ADD_FAQ', faqRef.id, `Created FAQ: ${newFaq.question}`);
     setIsAddingFaq(false);
     setNewFaq({ question: '', answer: '', category: 'visa', language: 'en' });
     fetchData();
@@ -62,6 +78,7 @@ export default function Admin() {
         await deleteDoc(doc(db, 'admins', userId));
       }
       
+      await logAction('TOGGLE_ROLE', userId, `Changed role from ${currentRole} to ${newRole}`);
       fetchData();
     } catch (err) {
       console.error("Failed to update role:", err);
@@ -71,6 +88,7 @@ export default function Admin() {
 
   const handleDeleteFaq = async (id: string) => {
     await deleteDoc(doc(db, 'faqs', id));
+    await logAction('DELETE_FAQ', id, `Deleted FAQ`);
     fetchData();
   };
 
@@ -103,6 +121,10 @@ export default function Admin() {
               <div className="luxury-card px-4 py-2 flex items-center gap-2">
                  <MessageSquare className="w-4 h-4 text-gold" />
                  <span className="text-sm font-medium">{faqs.length} FAQs</span>
+              </div>
+              <div className="luxury-card px-4 py-2 flex items-center gap-2">
+                 <History className="w-4 h-4 text-gold" />
+                 <span className="text-sm font-medium">{auditLogs.length} Events</span>
               </div>
            </div>
         </header>
@@ -244,6 +266,47 @@ export default function Admin() {
             </div>
           </section>
         </div>
+
+        {/* Audit Log Section */}
+        <section className="mt-12">
+          <h2 className="text-2xl font-serif mb-6 flex items-center gap-2">
+             <History className="w-6 h-6 opacity-30" />
+             System Intelligence Audit
+          </h2>
+          <div className="luxury-card overflow-hidden">
+             <table className="w-full text-sm text-left">
+                <thead className="bg-ink/[0.02] text-[10px] uppercase tracking-widest font-bold border-b border-ink/5">
+                   <tr>
+                      <th className="px-6 py-4">Timestamp</th>
+                      <th className="px-6 py-4">Action</th>
+                      <th className="px-6 py-4">Performed By</th>
+                      <th className="px-6 py-4">Details</th>
+                   </tr>
+                </thead>
+                <tbody className="divide-y divide-ink/5">
+                   {auditLogs.map(log => (
+                      <tr key={log.id} className="hover:bg-ink/[0.01]">
+                         <td className="px-6 py-4 text-ink/40 font-mono text-[10px]">
+                            {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleString() : 'Processing...'}
+                         </td>
+                         <td className="px-6 py-4">
+                            <span className="px-2 py-0.5 rounded bg-brand/10 text-brand text-[10px] font-black uppercase tracking-widest">
+                               {log.action}
+                            </span>
+                         </td>
+                         <td className="px-6 py-4 font-medium text-xs">{log.performedBy}</td>
+                         <td className="px-6 py-4 text-ink/60 text-xs italic">{log.details}</td>
+                      </tr>
+                   ))}
+                   {auditLogs.length === 0 && (
+                      <tr>
+                         <td colSpan={4} className="px-6 py-12 text-center text-ink/30 italic">No audit events recorded.</td>
+                      </tr>
+                   )}
+                </tbody>
+             </table>
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -60,5 +60,10 @@ service cloud.firestore {
     match /admins/{adminId} {
       allow read, write: if isAdmin();
     }
+
+    // Audit Log Rules
+    match /audit_logs/{logId} {
+      allow read, create: if isAdmin();
+    }
   }
 }

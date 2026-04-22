@@ -63,6 +63,19 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "title", "content"]
+    },
+    "AuditLog": {
+      "title": "System Audit Log",
+      "description": "Tracking significant admin actions.",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string" },
+        "performedBy": { "type": "string" },
+        "targetId": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["action", "performedBy", "timestamp"]
     }
   },
   "firestore": {
@@ -89,6 +102,10 @@
     "/admins/{adminId}": {
       "schema": "object",
       "description": "Admin white-list"
+    },
+    "/audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "System audit tracking"
     }
   }
 }
