@@ -61,7 +61,7 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
+  // Integration of Vite and Static Serving
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -69,25 +69,45 @@ async function startServer() {
     });
     app.use(vite.middlewares);
     
-    // Manual fallback for SPA routing in dev mode if vite middleware misses it
+    // Explicit SPA fallback for dev
     app.use('*', async (req, res, next) => {
       const url = req.originalUrl;
-      if (url.startsWith('/api')) return next();
+      // Skip API and files with extensions
+      if (url.startsWith('/api') || url.includes('.')) return next();
+      
       try {
         let template = await (await import('fs')).readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
         template = await vite.transformIndexHtml(url, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e) {
-        vite.ssrFixStacktrace(e as Error);
+        if (vite) vite.ssrFixStacktrace(e as Error);
         next(e);
       }
     });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    // Check if dist exists, otherwise fall back to source index.html (safety)
+    const fs = await import('fs');
+    const hasDist = fs.existsSync(distPath);
+    
+    if (hasDist) {
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        const filePath = path.join(distPath, 'index.html');
+        if (fs.existsSync(filePath)) {
+          res.sendFile(filePath);
+        } else {
+          // Final fallback
+          res.sendFile(path.resolve(process.cwd(), 'index.html'));
+        }
+      });
+    } else {
+      // If no dist folder, serve from root (useful for some environments)
+      app.use(express.static(process.cwd()));
+      app.get('*', (req, res) => {
+        res.sendFile(path.resolve(process.cwd(), 'index.html'));
+      });
+    }
   }
 
   app.listen(PORT, "0.0.0.0", () => {
