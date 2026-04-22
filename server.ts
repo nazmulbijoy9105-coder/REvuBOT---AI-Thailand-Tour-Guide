@@ -3,6 +3,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import cors from "cors";
 import "dotenv/config";
+import { GoogleGenAI } from "@google/genai";
 
 // Note: Environment variables like GEMINI_API_KEY are managed by AI Studio.
 // Grok API Key can be added to Secrets and accessed via process.env.GROK_API_KEY.
@@ -31,18 +32,13 @@ async function startServer() {
       
       if (geminiKey) {
         console.log("[REvuBOT] Initializing Gemini Neural Engine...");
-        const { GoogleGenAI } = await import("@google/genai");
-        const genAI = new GoogleGenAI(geminiKey);
-        const model = genAI.getGenerativeModel({ 
-          model: "gemini-1.5-flash", // Use stable model name
-          systemInstruction: `You are REvuBOT, a helpful Thailand tour guide. 
-          Support languages: English, Thai, Hindi, Sinhala. 
-          Always prioritize the user's selected language: ${language}.
-          Be professional, high-intelligence, and safety-conscious.`
-        });
-
+        const ai = new GoogleGenAI({ apiKey: geminiKey });
+        
         const contents = [
-          ...history,
+          ...history.map((h: any) => ({
+            role: h.role === 'model' ? 'model' : 'user',
+            parts: h.parts.map((p: any) => ({ text: p.text }))
+          })),
           { 
             role: 'user', 
             parts: [
@@ -52,12 +48,23 @@ async function startServer() {
           }
         ];
 
-        const result = await model.generateContentStream({ contents });
+        const stream = await ai.models.generateContentStream({
+          model: "gemini-3-flash-preview",
+          contents,
+          config: {
+            systemInstruction: `You are REvuBOT, a helpful Thailand tour guide. 
+            Support languages: English, Thai, Hindi, Sinhala. 
+            Always prioritize the user's selected language: ${language}.
+            Be professional, high-intelligence, and safety-conscious.`
+          }
+        });
         
         res.setHeader('Content-Type', 'text/plain');
-        for await (const chunk of result.stream) {
-          const chunkText = chunk.text();
-          res.write(chunkText);
+        for await (const chunk of stream) {
+          const chunkText = chunk.text;
+          if (chunkText) {
+            res.write(chunkText);
+          }
         }
         res.end();
         return;
