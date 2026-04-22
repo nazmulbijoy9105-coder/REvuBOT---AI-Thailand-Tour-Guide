@@ -8,6 +8,7 @@ import {
   onSnapshot, 
   doc, 
   updateDoc,
+  deleteDoc,
   serverTimestamp,
   getDocs,
   where
@@ -95,6 +96,7 @@ export default function Chat() {
   const [language, setLanguage] = React.useState('en');
   const [isTyping, setIsTyping] = React.useState(false);
   const [isListening, setIsListening] = React.useState(false);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const recognitionRef = React.useRef<any>(null);
@@ -266,6 +268,23 @@ export default function Chat() {
     navigate('/chat');
   };
 
+  const handleDeleteConversation = async (convId: string) => {
+    try {
+      // 1. Delete all messages in the conversation subcollection
+      const messagesSnap = await getDocs(collection(db, `conversations/${convId}/messages`));
+      const deletePromises = messagesSnap.docs.map(d => deleteDoc(d.ref));
+      await Promise.all(deletePromises);
+
+      // 2. Delete the conversation document
+      await deleteDoc(doc(db, 'conversations', convId));
+
+      setDeletingId(null);
+      if (id === convId) navigate('/chat');
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+    }
+  };
+
   return (
     <div className="h-[calc(100vh-64px)] flex bg-surface overflow-hidden text-slate-900">
       {/* Sidebar */}
@@ -287,17 +306,28 @@ export default function Chat() {
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-1">
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-3 ml-2">{t.recentLogs}</p>
           {conversations.map(conv => (
-            <button
-              key={conv.id}
-              onClick={() => navigate(`/chat/${conv.id}`)}
-              className={`sidebar-item group ${id === conv.id ? 'active-sidebar-item shadow-sm' : ''}`}
-            >
-              <div className="flex justify-between items-start mb-1">
-                <span className={`font-bold truncate ${id === conv.id ? 'text-white' : 'text-slate-400'}`}>{conv.title}</span>
-                <span className="text-[10px] opacity-30 font-bold uppercase tracking-tighter shrink-0 ml-2">{t.active}</span>
-              </div>
-              <p className={`text-[11px] truncate ${id === conv.id ? 'text-slate-300' : 'text-slate-500'}`}>{conv.lastMessage || t.signal}</p>
-            </button>
+            <div key={conv.id} className="relative group">
+              <button
+                onClick={() => navigate(`/chat/${conv.id}`)}
+                className={`sidebar-item w-full text-left pr-10 ${id === conv.id ? 'active-sidebar-item shadow-sm' : ''}`}
+              >
+                <div className="flex justify-between items-start mb-1">
+                  <span className={`font-bold truncate ${id === conv.id ? 'text-white' : 'text-slate-400'}`}>{conv.title}</span>
+                  <span className="text-[10px] opacity-30 font-bold uppercase tracking-tighter shrink-0 ml-2">{t.active}</span>
+                </div>
+                <p className={`text-[11px] truncate ${id === conv.id ? 'text-slate-300' : 'text-slate-500'}`}>{conv.lastMessage || t.signal}</p>
+              </button>
+              
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeletingId(conv.id);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-slate-800"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           ))}
         </div>
 
@@ -481,6 +511,46 @@ export default function Chat() {
              <p className="text-[11px] leading-relaxed opacity-70 font-medium">{t.safetyDesc}</p>
           </div>
       </aside>
+
+      <AnimatePresence>
+        {deletingId && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-panel/60 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-slate-100"
+            >
+              <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                <Trash2 className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-xl font-serif text-center mb-2">Initialize Purge?</h3>
+              <p className="text-slate-500 text-sm text-center mb-8 pr-2">
+                This will permanently erase the neural history and all associated visual intelligence. This action is irreversible.
+              </p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setDeletingId(null)}
+                  className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
+                >
+                  Abort
+                </button>
+                <button 
+                  onClick={() => deletingId && handleDeleteConversation(deletingId)}
+                  className="flex-1 py-3 px-4 rounded-xl bg-red-500 text-white text-xs font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
+                >
+                  Confirm Purge
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
