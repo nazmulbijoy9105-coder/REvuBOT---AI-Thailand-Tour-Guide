@@ -1,6 +1,6 @@
 {
   "name": "REvuBOT - AI Thailand Tour Guide",
   "description": "An AI-powered travel assistant for Thailand featuring multilingual support (English, Thai, Hindi, Sinhala), personalized itineraries, and real-time tourist FAQ.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["AI Chat", "Travel Planning", "Multilingual"]
 }

@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { generateTravelAdvice } from '../lib/ai';
-import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X } from 'lucide-react';
+import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X, Mic, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 
@@ -94,11 +94,57 @@ export default function Chat() {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
   const [language, setLanguage] = React.useState('en');
   const [isTyping, setIsTyping] = React.useState(false);
+  const [isListening, setIsListening] = React.useState(false);
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const recognitionRef = React.useRef<any>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   const t = LOCALIZATION[language] || LOCALIZATION.en;
+
+  // Initialize Speech Recognition
+  React.useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(prev => prev ? `${prev} ${transcript}` : transcript);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      if (!recognitionRef.current) {
+        alert("Speech recognition is not supported in this browser.");
+        return;
+      }
+      try {
+        recognitionRef.current.lang = language === 'th' ? 'th-TH' : language === 'hi' ? 'hi-IN' : 'en-US';
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (err) {
+        console.error('Failed to start recognition:', err);
+      }
+    }
+  };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -390,6 +436,15 @@ export default function Chat() {
                     className="w-full bg-transparent border-none focus:ring-0 outline-none font-bold"
                   />
                </div>
+               
+               <button 
+                  type="button"
+                  onClick={toggleListening}
+                  className={`p-2 rounded-xl transition-all ${isListening ? 'text-red-500 bg-red-50 animate-pulse' : 'text-slate-400 hover:text-brand hover:bg-white'}`}
+                  title={isListening ? "Stop Listening" : "Start Voice Input"}
+                >
+                  {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                </button>
                <button 
                   type="submit"
                   disabled={(!input.trim() && !selectedImage) || isTyping}
