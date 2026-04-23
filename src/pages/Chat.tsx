@@ -117,6 +117,7 @@ export default function Chat() {
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
   const [userScrolledUp, setUserScrolledUp] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [streamingMessage, setStreamingMessage] = React.useState<{ id: string, content: string } | null>(null);
   const [showCurrency, setShowCurrency] = React.useState(false);
   const [conversion, setConversion] = React.useState({
     amount: '1000',
@@ -412,10 +413,15 @@ export default function Chat() {
         timestamp: serverTimestamp()
       });
 
+      setStreamingMessage({ id: aiMsgRef.id, content: '' });
+
       for await (const chunk of stream) {
         fullContent += chunk.text;
-        await updateDoc(aiMsgRef, { content: fullContent });
+        setStreamingMessage({ id: aiMsgRef.id, content: fullContent });
       }
+      
+      // Final persistence to Firestore
+      await updateDoc(aiMsgRef, { content: fullContent });
     } catch (err: any) {
       console.error("Neural Error:", err);
       let errorMessage = "⚠️ **SIGNAL INTERRUPT**: Neural Engine offline.";
@@ -426,6 +432,7 @@ export default function Chat() {
       });
     } finally {
       setIsTyping(false);
+      setStreamingMessage(null);
     }
   };
 
@@ -692,11 +699,13 @@ export default function Chat() {
                           </div>
                         )}
                         <div className="prose prose-slate prose-sm text-inherit max-w-none prose-p:leading-relaxed prose-li:my-1 prose-headings:text-inherit prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tighter prose-strong:text-inherit prose-code:text-brand prose-pre:bg-panel prose-pre:text-white prose-img:rounded-2xl relative group/msg">
-                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                          <ReactMarkdown>
+                            {streamingMessage?.id === m.id ? streamingMessage.content : m.content}
+                          </ReactMarkdown>
                           
-                          {m.sender === 'ai' && m.content && (
+                          {(streamingMessage?.id === m.id ? streamingMessage.content : m.content) && m.sender === 'ai' && (
                             <button 
-                              onClick={() => speakMessage(m.id || i.toString(), m.content)}
+                              onClick={() => speakMessage(m.id || i.toString(), (streamingMessage?.id === m.id ? streamingMessage.content : m.content))}
                               className={`absolute -right-12 top-0 p-2 rounded-xl transition-all shadow-lg border ${
                                 speakingMessageId === (m.id || i.toString()) 
                                 ? 'bg-brand text-panel border-brand animate-pulse' 
