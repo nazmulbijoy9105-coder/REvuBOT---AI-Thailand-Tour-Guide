@@ -86,7 +86,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<Layout user={user} />}>
-          <Route path="/" element={<Chat />} />
+          <Route path="/" element={<Home />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/chat/:id" element={<Chat />} />
           <Route path="/faq" element={<FAQ />} />
