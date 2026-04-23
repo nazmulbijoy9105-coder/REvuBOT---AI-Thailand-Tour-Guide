@@ -121,6 +121,7 @@ export default function Chat() {
   const [streamingMessage, setStreamingMessage] = React.useState<{ id: string, content: string } | null>(null);
   const [showCurrency, setShowCurrency] = React.useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = React.useState(false);
+  const [voiceStatus, setVoiceStatus] = React.useState<'idle' | 'listening' | 'success'>('idle');
   const [conversion, setConversion] = React.useState({
     amount: '1000',
     from: 'BDT',
@@ -253,16 +254,20 @@ export default function Chat() {
         }
         if (finalTranscript) {
           setInput(prev => prev ? `${prev} ${finalTranscript}` : finalTranscript);
+          setVoiceStatus('success');
+          setTimeout(() => setVoiceStatus('idle'), 2000);
         }
       };
 
       recognitionRef.current.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
+        setVoiceStatus('idle');
       };
 
       recognitionRef.current.onend = () => {
         setIsListening(false);
+        if (voiceStatus !== 'success') setVoiceStatus('idle');
       };
     }
   }, []);
@@ -279,6 +284,7 @@ export default function Chat() {
         recognitionRef.current.lang = language === 'th' ? 'th-TH' : language === 'hi' ? 'hi-IN' : 'en-US';
         recognitionRef.current.start();
         setIsListening(true);
+        setVoiceStatus('listening');
       } catch (err) {
         console.error('Failed to start recognition:', err);
       }
@@ -899,13 +905,25 @@ export default function Chat() {
                  </button>
                </div>
                
-               <div className="flex-1 px-4 py-2">
+               <div className="flex-1 px-4 py-2 relative">
                   <input 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={selectedImage ? "Describe this image for neural analysis..." : t.placeholder}
                     className="w-full bg-transparent border-none focus:ring-0 outline-none font-bold text-slate-700 placeholder:text-slate-300 transition-all text-base"
                   />
+                  <AnimatePresence>
+                    {voiceStatus !== 'idle' && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className={`absolute -top-6 left-4 text-[10px] font-black uppercase tracking-widest ${voiceStatus === 'listening' ? 'text-red-500' : 'text-green-500'}`}
+                      >
+                        {voiceStatus === 'listening' ? 'Neural Mic Active' : 'Intelligence Transcribed'}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                </div>
                
                <button 
