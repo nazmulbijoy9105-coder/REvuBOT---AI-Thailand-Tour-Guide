@@ -11,6 +11,12 @@ export default function Layout({ user }: { user: User | null }) {
   const [isFeedbackOpen, setIsFeedbackOpen] = React.useState(false);
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    const handleOpenFeedback = () => setIsFeedbackOpen(true);
+    window.addEventListener('open-feedback', handleOpenFeedback);
+    return () => window.removeEventListener('open-feedback', handleOpenFeedback);
+  }, []);
+
   const handleLogout = async () => {
     await signOut(auth);
     navigate('/');

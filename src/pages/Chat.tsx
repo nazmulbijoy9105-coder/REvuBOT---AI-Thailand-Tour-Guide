@@ -16,9 +16,10 @@ import {
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { generateTravelAdvice } from '../lib/ai';
-import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X, Mic, MicOff, Search, Volume2, VolumeX, Banknote, ArrowRightLeft } from 'lucide-react';
+import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X, Mic, MicOff, Search, Volume2, VolumeX, Banknote, ArrowRightLeft, Command } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
+import CommandPalette from '../components/CommandPalette';
 
 const LOCALIZATION: Record<string, any> = {
   en: {
@@ -119,6 +120,7 @@ export default function Chat() {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [streamingMessage, setStreamingMessage] = React.useState<{ id: string, content: string } | null>(null);
   const [showCurrency, setShowCurrency] = React.useState(false);
+  const [isPaletteOpen, setIsPaletteOpen] = React.useState(false);
   const [conversion, setConversion] = React.useState({
     amount: '1000',
     from: 'BDT',
@@ -161,6 +163,7 @@ export default function Chat() {
   // Scroll logic
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const sidebarSearchRef = React.useRef<HTMLInputElement>(null);
   
   const scrollToBottom = (instant = false) => {
     if (messagesEndRef.current) {
@@ -178,6 +181,36 @@ export default function Chat() {
       // If user is more than 100px from bottom, they have "scrolled up"
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       setUserScrolledUp(!isNearBottom);
+    }
+  };
+
+  // Keyboard Shortcuts
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsPaletteOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleCommandAction = (actionId: string) => {
+    switch (actionId) {
+      case 'new-chat':
+        createNewChat();
+        break;
+      case 'search-history':
+        setIsSidebarOpen(true);
+        setTimeout(() => sidebarSearchRef.current?.focus(), 100);
+        break;
+      case 'currency':
+        setShowCurrency(true);
+        break;
+      case 'feedback':
+        window.dispatchEvent(new CustomEvent('open-feedback'));
+        break;
     }
   };
 
@@ -472,6 +505,7 @@ export default function Chat() {
           <div className="mb-6 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
             <input 
+              ref={sidebarSearchRef}
               type="text"
               placeholder="Search conversations..."
               value={searchQuery}
@@ -481,35 +515,50 @@ export default function Chat() {
           </div>
 
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-3 ml-2">{t.recentLogs}</p>
-          {conversations
-            .filter(conv => 
-              conv.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-              conv.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-            .map(conv => (
-            <div key={conv.id} className="relative group">
-              <button
-                onClick={() => navigate(`/chat/${conv.id}`)}
-                className={`sidebar-item w-full text-left pr-10 ${id === conv.id ? 'active-sidebar-item shadow-sm' : ''}`}
-              >
-                <div className="flex justify-between items-start mb-1">
-                  <span className={`font-bold truncate text-[13px] ${id === conv.id ? 'text-white' : 'text-slate-400'}`}>{conv.title}</span>
-                  <span className="text-[10px] opacity-30 font-bold uppercase tracking-tighter shrink-0 ml-2">{t.active}</span>
+          {(() => {
+            const searchQueryLower = searchQuery.toLowerCase();
+            const filtered = conversations.filter(conv => 
+              conv.title?.toLowerCase().includes(searchQueryLower) || 
+              conv.lastMessage?.toLowerCase().includes(searchQueryLower)
+            );
+
+            if (filtered.length === 0 && searchQuery) {
+              return (
+                <div className="py-12 px-4 text-center">
+                   <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4 opacity-50">
+                      <Search className="w-6 h-6 text-slate-500" />
+                   </div>
+                   <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600 font-black mb-1">Signal Mismatch</p>
+                   <p className="text-[11px] text-slate-500 font-bold italic leading-relaxed">No missions matched your query parameters.</p>
                 </div>
-                <p className={`text-[11px] truncate ${id === conv.id ? 'text-slate-300' : 'text-slate-500'}`}>{conv.lastMessage || t.signal}</p>
-              </button>
-              
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeletingId(conv.id);
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-slate-800"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
+              );
+            }
+
+            return filtered.map(conv => (
+              <div key={conv.id} className="relative group">
+                <button
+                  onClick={() => navigate(`/chat/${conv.id}`)}
+                  className={`sidebar-item w-full text-left pr-10 ${id === conv.id ? 'active-sidebar-item shadow-sm' : ''}`}
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <span className={`font-bold truncate text-[13px] ${id === conv.id ? 'text-white' : 'text-slate-400'}`}>{conv.title}</span>
+                    <span className="text-[10px] opacity-30 font-bold uppercase tracking-tighter shrink-0 ml-2">{t.active}</span>
+                  </div>
+                  <p className={`text-[11px] truncate ${id === conv.id ? 'text-slate-300' : 'text-slate-500'}`}>{conv.lastMessage || t.signal}</p>
+                </button>
+                
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeletingId(conv.id);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-slate-800"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ));
+          })()}
         </div>
 
         <div className="p-4 border-t border-slate-800 bg-panel-muted/30">
@@ -559,6 +608,14 @@ export default function Chat() {
              <h2 className="text-xs font-black uppercase tracking-widest text-slate-500">Operation: Tourist Support</h2>
           </div>
           <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setIsPaletteOpen(true)}
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black text-slate-400 hover:text-brand hover:border-brand transition-all"
+              title="Command Palette (Ctrl+K)"
+            >
+              <Command className="w-3.5 h-3.5" />
+              <span>⌘K</span>
+            </button>
             <button 
               onClick={() => setShowCurrency(!showCurrency)}
               className={`p-2 rounded-xl transition-all ${showCurrency ? 'bg-brand text-panel shadow-lg' : 'hover:bg-slate-50 text-slate-400'}`}
@@ -967,6 +1024,12 @@ export default function Chat() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <CommandPalette 
+        isOpen={isPaletteOpen} 
+        onClose={() => setIsPaletteOpen(false)}
+        onAction={handleCommandAction}
+      />
     </div>
   );
 }

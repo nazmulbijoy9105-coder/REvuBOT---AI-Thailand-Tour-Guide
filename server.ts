@@ -51,10 +51,27 @@ async function startServer() {
         if (!geminiKey) throw new Error("GEMINI_API_KEY not configured.");
 
         logger.info("Initializing Gemini Neural Engine...");
-        const genAI = new GoogleGenAI(geminiKey);
-        const model = genAI.getGenerativeModel({ 
+        const ai = new GoogleGenAI({ apiKey: geminiKey });
+        
+        const contents = [
+          ...history.map((h: any) => ({
+            role: h.role === 'model' ? 'model' : 'user',
+            parts: h.parts.map((p: any) => ({ text: p.text }))
+          })),
+          { 
+            role: 'user', 
+            parts: [
+              { text: message },
+              ...(imageData ? [{ inlineData: { data: imageData, mimeType } }] : [])
+            ] 
+          }
+        ];
+
+        const streamingResult = await ai.models.generateContentStream({ 
           model: "gemini-3-flash-preview",
-          systemInstruction: `You are REvuBOT, the elite Thailand AI Tour Guide and Autonomous Travel Agent.
+          contents,
+          config: {
+            systemInstruction: `You are REvuBOT, the elite Thailand AI Tour Guide and Autonomous Travel Agent.
             
             Core Directives:
             1. LANGUAGE: Prioritize ${language}. Support English, Thai, Hindi, Sinhala, and BANGLA (very important for Bangladesh-Thailand corridor).
@@ -72,27 +89,12 @@ async function startServer() {
             5. FORMATTING: Use clean Markdown. Use bullet points for steps.
             
             Context: The user is likely an international tourist looking for zero-barrier entry into Thai culture.`
+          }
         });
         
-        const contents = [
-          ...history.map((h: any) => ({
-            role: h.role === 'model' ? 'model' : 'user',
-            parts: h.parts.map((p: any) => ({ text: p.text }))
-          })),
-          { 
-            role: 'user', 
-            parts: [
-              { text: message },
-              ...(imageData ? [{ inlineData: { data: imageData, mimeType } }] : [])
-            ] 
-          }
-        ];
-
-        const streamingResult = await model.generateContentStream({ contents });
-        
         res.setHeader('Content-Type', 'text/plain');
-        for await (const chunk of streamingResult.stream) {
-          const chunkText = chunk.text();
+        for await (const chunk of streamingResult) {
+          const chunkText = chunk.text;
           if (chunkText) {
             res.write(chunkText);
           }
