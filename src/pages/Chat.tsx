@@ -16,7 +16,7 @@ import {
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { generateTravelAdvice } from '../lib/ai';
-import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X, Mic, MicOff } from 'lucide-react';
+import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X, Mic, MicOff, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 
@@ -112,6 +112,8 @@ export default function Chat() {
   const [isListening, setIsListening] = React.useState(false);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
+  const [userScrolledUp, setUserScrolledUp] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const recognitionRef = React.useRef<any>(null);
   
@@ -130,8 +132,22 @@ export default function Chat() {
     }
   };
 
+  // Scroll visibility detector
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+      // If user is more than 150px from bottom, they have "scrolled up"
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+      setUserScrolledUp(!isNearBottom);
+    }
+  };
+
   React.useEffect(() => {
-    scrollToBottom();
+    // Only auto-scroll if user hasn't manually scrolled up to read history
+    // OR if the system is typing (AI is responding) and they were already at the bottom
+    if (!userScrolledUp || isTyping) {
+      scrollToBottom();
+    }
   }, [messages, isTyping]);
 
   // Initial scroll on load
@@ -254,6 +270,7 @@ export default function Chat() {
     
     setInput('');
     clearImage();
+    setUserScrolledUp(false); // Reset scroll state to force auto-scroll on send
 
     if (!convId) {
       const convDoc = await addDoc(collection(db, 'conversations'), {
@@ -346,8 +363,24 @@ export default function Chat() {
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-1">
+          <div className="mb-6 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+            <input 
+              type="text"
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-800/50 border border-slate-700 rounded-lg py-2 pl-9 pr-3 text-[11px] font-medium text-white placeholder:text-slate-500 focus:outline-none focus:border-brand/50 transition-all"
+            />
+          </div>
+
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-3 ml-2">{t.recentLogs}</p>
-          {conversations.map(conv => (
+          {conversations
+            .filter(conv => 
+              conv.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+              conv.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .map(conv => (
             <div key={conv.id} className="relative group">
               <button
                 onClick={() => navigate(`/chat/${conv.id}`)}
@@ -430,6 +463,7 @@ export default function Chat() {
         {/* Messages */}
         <div 
           ref={scrollContainerRef}
+          onScroll={handleScroll}
           className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-[#FDFCFB] scroll-smooth selection:bg-brand/30"
         >
           {messages.length === 0 && !id && (
