@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 export const config = {
-  runtime: "edge", // faster streaming
+  runtime: "edge",
 };
 
 export default async function handler(req: Request) {
@@ -10,12 +10,13 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const { message, history = [], language = "en", imageData, mimeType } = await req.json();
+    const { message, history = [], language = "en", imageData, mimeType } =
+      await req.json();
 
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "Missing API Key" }), { status: 500 });
+      return new Response("Missing API Key", { status: 500 });
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -26,18 +27,19 @@ export default async function handler(req: Request) {
         role: "user",
         parts: [
           { text: message },
-          ...(imageData ? [{ inlineData: { data: imageData, mimeType } }] : [])
-        ]
-      }
+          ...(imageData
+            ? [{ inlineData: { data: imageData, mimeType } }]
+            : []),
+        ],
+      },
     ];
 
     const stream = await ai.models.generateContentStream({
       model: "gemini-3-flash-preview",
       contents,
       config: {
-        systemInstruction: `You are REvuBOT, a Thailand travel AI.
-        Respond in ${language}. Be precise and helpful.`
-      }
+        systemInstruction: `You are REvuBOT, a travel AI for Thailand. Respond in ${language}. Be precise, helpful, and safe.`,
+      },
     });
 
     const encoder = new TextEncoder();
@@ -51,7 +53,7 @@ export default async function handler(req: Request) {
             }
           }
           controller.close();
-        }
+        },
       }),
       {
         headers: {
@@ -60,9 +62,8 @@ export default async function handler(req: Request) {
       }
     );
   } catch (err: any) {
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+    });
   }
 }
