@@ -39,9 +39,22 @@ service cloud.firestore {
 
     // Message Rules
     match /conversations/{convId}/messages/{msgId} {
-      allow get, list: if isSignedIn() && get(/databases/$(database)/documents/conversations/$(convId)).data.userId == request.auth.uid;
-      allow create: if isSignedIn() && get(/databases/$(database)/documents/conversations/$(convId)).data.userId == request.auth.uid;
-      allow update: if isAdmin(); // AI Response updates content via server key or admin
+      function isConvOwner() {
+        return get(/databases/$(database)/documents/conversations/$(convId)).data.userId == request.auth.uid;
+      }
+      
+      function isValidMessage(data) {
+        return data.sender in ['user', 'ai'] && 
+               data.content is string && 
+               data.content.size() <= 10000;
+      }
+
+      allow get, list: if isSignedIn() && isConvOwner();
+      allow create: if isSignedIn() && isConvOwner() && isValidMessage(request.resource.data);
+      allow update: if (isSignedIn() && isConvOwner() && 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content'])) ||
+                      isAdmin();
+      allow delete: if isAdmin();
     }
 
     // FAQ Rules

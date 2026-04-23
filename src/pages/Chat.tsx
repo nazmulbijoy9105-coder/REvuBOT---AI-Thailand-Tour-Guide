@@ -79,13 +79,25 @@ const LOCALIZATION: Record<string, any> = {
     transmit: "යවන්න",
     initContact: "සම්බන්ධතාවය අරඹන්න",
     welcomeDesc: "තායිලන්ත සංචාරක තොරතුරු සඳහා සූදානම්. ප්‍රවාහනය, සංස්කෘතිය හෝ නීතිමය කරුණු පිළිබඳ ඔබේ ගැටලු යොමු කරන්න.",
-    contextualIntel: "වැදගත් තොරතුරු",
+    contextualIntel: "වැදගත් තොරුතුරු",
     safetyDirective: "ආරක්ෂක උපදෙස්",
     safetyDesc: "මෝසම් වැසි අනතුරු ඇඟවීම: මධ්‍යම තායිලන්තයට තද වැසි අපේක්ෂා කෙරේ.",
     active: "සක්‍රීය",
     signal: "සම්බන්ධ වෙමින්..."
   }
 };
+
+function QuickPill({ icon, label, onClick }: { icon: string, label: string, onClick: () => void }) {
+  return (
+    <button 
+      onClick={onClick}
+      className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-black text-slate-600 uppercase tracking-widest hover:border-brand hover:text-brand transition-all shadow-sm active:scale-95"
+    >
+      <span>{icon}</span>
+      <span>{label}</span>
+    </button>
+  );
+}
 
 export default function Chat() {
   const { id } = useParams();
@@ -101,22 +113,51 @@ export default function Chat() {
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const recognitionRef = React.useRef<any>(null);
-  const scrollRef = React.useRef<HTMLDivElement>(null);
-
+  
   const t = LOCALIZATION[language] || LOCALIZATION.en;
+
+  // Scroll logic
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  
+  const scrollToBottom = (instant = false) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: instant ? 'auto' : 'smooth'
+      });
+    }
+  };
+
+  React.useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
+
+  // Initial scroll on load
+  React.useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom(true);
+    }
+  }, [id]);
 
   // Initialize Speech Recognition
   React.useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
       
       recognitionRef.current.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInput(prev => prev ? `${prev} ${transcript}` : transcript);
-        setIsListening(false);
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+        if (finalTranscript) {
+          setInput(prev => prev ? `${prev} ${finalTranscript}` : finalTranscript);
+        }
       };
 
       recognitionRef.current.onerror = (event: any) => {
@@ -133,10 +174,9 @@ export default function Chat() {
   const toggleListening = () => {
     if (isListening) {
       recognitionRef.current?.stop();
-      setIsListening(false);
     } else {
       if (!recognitionRef.current) {
-        alert("Speech recognition is not supported in this browser.");
+        console.warn("Speech recognition is not supported in this browser.");
         return;
       }
       try {
@@ -201,18 +241,9 @@ export default function Chat() {
     });
   }, [id]);
 
-  React.useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, isTyping]);
-
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!auth.currentUser) {
-      console.warn("Direct Access: Neural link initializing...");
-      return;
-    }
+    if (!auth.currentUser) return;
     if (!input.trim() && !selectedImage) return;
 
     let convId = id;
@@ -223,7 +254,6 @@ export default function Chat() {
     setInput('');
     clearImage();
 
-    // Create new conversation if none selected
     if (!convId) {
       const convDoc = await addDoc(collection(db, 'conversations'), {
         userId: auth.currentUser.uid,
@@ -235,7 +265,6 @@ export default function Chat() {
       navigate(`/chat/${convId}`);
     }
 
-    // Save user message (with image indicator for UI)
     await addDoc(collection(db, `conversations/${convId}/messages`), {
       sender: 'user',
       content: userMsg,
@@ -248,13 +277,10 @@ export default function Chat() {
       lastMessage: imageData ? "[Visual Intelligence Captured]" : userMsg
     });
 
-    // Get AI Response
     setIsTyping(true);
     try {
-      // Limit history to last 10 messages to stay within token limits and maintain performance
       const historyThreshold = 10;
       const recentMessages = messages.slice(-historyThreshold);
-      
       const history = recentMessages.map(m => ({
         role: m.sender === 'user' ? 'user' : 'model',
         parts: [{ text: m.content }]
@@ -263,7 +289,6 @@ export default function Chat() {
       const stream = await generateTravelAdvice(userMsg, history, language, imageData, mimeType);
       let fullContent = '';
       
-      // Store AI message body
       const aiMsgRef = await addDoc(collection(db, `conversations/${convId}/messages`), {
         sender: 'ai',
         content: '',
@@ -276,16 +301,7 @@ export default function Chat() {
       }
     } catch (err: any) {
       console.error("Neural Error:", err);
-      
-      // Determine the specific error message to show
-      let errorMessage = "⚠️ **SIGNAL INTERRUPT**: The Neural Engine encountered a critical error. This usually happens if the API key is missing or invalid.";
-      
-      if (err.message?.includes("exceeded max tokens")) {
-        errorMessage = "⚠️ **OVERLOAD**: The message history has exceeded the current buffer capacity. Please try again with a shorter prompt.";
-      } else if (err.message?.includes("401")) {
-        errorMessage = "⚠️ **ACCESS DENIED**: The Neural Key is invalid or not configured. Please verify your Environment Variables.";
-      }
-      
+      let errorMessage = "⚠️ **SIGNAL INTERRUPT**: Neural Engine offline.";
       await addDoc(collection(db, `conversations/${convId}/messages`), {
         sender: 'ai',
         content: errorMessage,
@@ -296,20 +312,13 @@ export default function Chat() {
     }
   };
 
-  const createNewChat = () => {
-    navigate('/chat');
-  };
+  const createNewChat = () => navigate('/chat');
 
   const handleDeleteConversation = async (convId: string) => {
     try {
-      // 1. Delete all messages in the conversation subcollection
       const messagesSnap = await getDocs(collection(db, `conversations/${convId}/messages`));
-      const deletePromises = messagesSnap.docs.map(d => deleteDoc(d.ref));
-      await Promise.all(deletePromises);
-
-      // 2. Delete the conversation document
+      await Promise.all(messagesSnap.docs.map(d => deleteDoc(d.ref)));
       await deleteDoc(doc(db, 'conversations', convId));
-
       setDeletingId(null);
       if (id === convId) navigate('/chat');
     } catch (error) {
@@ -318,17 +327,17 @@ export default function Chat() {
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] flex bg-surface overflow-hidden text-slate-900">
+    <div className="h-[calc(100vh-64px)] flex bg-[#FDFCFB] overflow-hidden text-slate-900">
       {/* Sidebar */}
       <motion.aside 
         initial={false}
         animate={{ width: isSidebarOpen ? 280 : 0 }}
-        className="bg-panel text-slate-200 flex flex-col border-r border-slate-800"
+        className="bg-panel text-slate-200 flex flex-col border-r border-slate-800 shrink-0"
       >
         <div className="p-4 border-b border-slate-800">
           <button 
             onClick={createNewChat}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-brand text-panel rounded-xl text-xs font-black uppercase tracking-widest hover:bg-brand-hover transition-all shadow-lg shadow-brand/20"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-brand text-panel rounded-xl text-xs font-black uppercase tracking-widest hover:bg-brand-hover transition-all shadow-lg shadow-brand/20 active:scale-95"
           >
             <Plus className="w-4 h-4" />
             {t.newSession}
@@ -344,7 +353,7 @@ export default function Chat() {
                 className={`sidebar-item w-full text-left pr-10 ${id === conv.id ? 'active-sidebar-item shadow-sm' : ''}`}
               >
                 <div className="flex justify-between items-start mb-1">
-                  <span className={`font-bold truncate ${id === conv.id ? 'text-white' : 'text-slate-400'}`}>{conv.title}</span>
+                  <span className={`font-bold truncate text-[13px] ${id === conv.id ? 'text-white' : 'text-slate-400'}`}>{conv.title}</span>
                   <span className="text-[10px] opacity-30 font-bold uppercase tracking-tighter shrink-0 ml-2">{t.active}</span>
                 </div>
                 <p className={`text-[11px] truncate ${id === conv.id ? 'text-slate-300' : 'text-slate-500'}`}>{conv.lastMessage || t.signal}</p>
@@ -365,12 +374,12 @@ export default function Chat() {
 
         <div className="p-4 border-t border-slate-800 bg-panel-muted/30">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">{t.interfaceLang}</p>
-          <div className="flex flex-wrap gap-2 justify-between">
-            {['AUTO', 'EN', 'TH', 'HI', 'SI'].map(lang => (
+          <div className="grid grid-cols-4 gap-1.5 px-1">
+            {['EN', 'TH', 'HI', 'SI'].map(lang => (
               <button 
                 key={lang}
                 onClick={() => setLanguage(lang.toLowerCase())}
-                className={`px-2 py-1.5 rounded text-[10px] font-black tracking-widest transition-all ${language === lang.toLowerCase() ? 'bg-brand text-panel shadow-sm shadow-brand/10' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                className={`py-2 rounded-lg text-[10px] font-black tracking-widest transition-all ${language === lang.toLowerCase() ? 'bg-brand text-panel font-bold' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}
               >
                 {lang}
               </button>
@@ -384,135 +393,207 @@ export default function Chat() {
         {/* Chat Header */}
         <header className="h-16 border-b border-slate-100 flex items-center justify-between px-8 shrink-0 bg-white/80 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-4">
-             <div className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-full text-[10px] font-black tracking-widest border border-green-100 uppercase">
+             <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-[10px] font-black tracking-widest border border-green-100 uppercase">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
                 {t.neuralEngine}
              </div>
              <span className="text-slate-200">|</span>
-             <h2 className="text-xs font-black uppercase tracking-widest text-slate-500">Thailand Support Ops</h2>
+             <h2 className="text-xs font-black uppercase tracking-widest text-slate-500">Operation: Tourist Support</h2>
           </div>
+          <button 
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-2 hover:bg-slate-50 rounded-xl transition-colors text-slate-400"
+          >
+            <History className="w-5 h-5" />
+          </button>
         </header>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 space-y-6 bg-slate-50/50 scroll-smooth">
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-[#FDFCFB] scroll-smooth selection:bg-brand/30"
+        >
           {messages.length === 0 && !id && (
-            <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto space-y-6">
-                <div className="w-16 h-16 bg-brand rounded-2xl flex items-center justify-center text-panel font-black text-2xl shadow-xl shadow-brand/20">RB</div>
-                <div>
-                   <h3 className="text-xl font-black uppercase tracking-tighter mb-2">{t.initContact}</h3>
-                   <p className="text-sm text-slate-500 leading-relaxed font-medium">{t.welcomeDesc}</p>
+            <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto space-y-8 py-12">
+                <motion.div 
+                  initial={{ rotate: -10, scale: 0.9, opacity: 0 }}
+                  animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", damping: 15 }}
+                  className="w-20 h-20 bg-brand rounded-3xl flex items-center justify-center text-panel font-black text-3xl shadow-2xl shadow-brand/30 border-4 border-white relative"
+                >
+                  RB
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full border-4 border-white animate-pulse" />
+                </motion.div>
+                <div className="space-y-3">
+                   <h3 className="text-2xl font-black uppercase tracking-tighter text-panel">{t.initContact}</h3>
+                   <p className="text-sm text-slate-500 leading-relaxed font-medium px-4">{t.welcomeDesc}</p>
                 </div>
-                <div className="flex flex-wrap justify-center gap-2 pt-4">
-                  <div onClick={() => setInput("Bangkok transit guide")} className="cursor-pointer px-4 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-black text-slate-600 uppercase tracking-widest hover:border-brand transition-all shadow-sm">🥘 Local Food</div>
-                  <div onClick={() => setInput("Visa requirements")} className="cursor-pointer px-4 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-black text-slate-600 uppercase tracking-widest hover:border-brand transition-all shadow-sm">🚆 BTS Guide</div>
-                </div>
-            </div>
-          )}
-
-          {messages.map((m, i) => (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              key={m.id || i} 
-              className={`flex gap-4 ${m.sender === 'user' ? 'flex-row-reverse self-end max-w-2xl' : 'max-w-2xl'}`}
-            >
-              <div className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center font-black text-[10px] shadow-sm ${m.sender === 'user' ? 'bg-panel text-white' : 'bg-brand text-panel'}`}>
-                {m.sender === 'user' ? 'ME' : 'RB'}
-              </div>
-              <div className={`p-4 rounded-2xl text-sm leading-relaxed ${m.sender === 'user' ? 'bg-panel text-white shadow-md' : 'bg-white border border-slate-200 shadow-sm text-slate-800'}`}>
-                 {m.hasImage && (
-                   <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60">
-                     <ImageIcon className="w-3 h-3" />
-                     Visual Intel Captured
-                   </div>
-                 )}
-                 <div className="prose prose-slate prose-sm text-inherit max-w-none prose-p:leading-relaxed prose-li:my-1">
-                   <ReactMarkdown>{m.content}</ReactMarkdown>
-                 </div>
-              </div>
-            </motion.div>
-          ))}
-          
-          {isTyping && (
-            <div className="flex gap-4 max-w-2xl">
-               <div className="w-8 h-8 rounded-lg bg-brand shrink-0 flex items-center justify-center font-black text-[10px]">RB</div>
-               <div className="bg-white border border-slate-200 p-4 rounded-2xl flex items-center gap-1.5 shadow-sm">
-                  <span className="w-1.5 h-1.5 bg-brand/40 rounded-full animate-bounce" />
-                  <span className="w-1.5 h-1.5 bg-brand/60 rounded-full animate-bounce [animation-delay:0.2s]" />
-                  <span className="w-1.5 h-1.5 bg-brand/80 rounded-full animate-bounce [animation-delay:0.4s]" />
-               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Input Area */}
-        <div className="p-6 bg-white border-t border-slate-100">
-          <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto">
-            <AnimatePresence>
-              {selectedImage && (
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="mb-4 relative inline-block group"
+                  transition={{ delay: 0.4 }}
+                  className="flex flex-wrap justify-center gap-3 pt-4"
                 >
-                  <img 
-                    src={selectedImage} 
-                    alt="Intercept preview" 
-                    className="h-32 rounded-2xl border-4 border-white shadow-xl ring-1 ring-slate-200" 
-                    referrerPolicy="no-referrer"
-                  />
-                  <button 
-                    type="button"
-                    onClick={clearImage}
-                    className="absolute -top-2 -right-2 bg-panel text-white p-1 rounded-full shadow-lg hover:bg-red-500 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <QuickPill icon="🥘" label="Local Food" onClick={() => setInput("What are the best street food spots in Bangkok?")} />
+                  <QuickPill icon="🚆" label="BTS Guide" onClick={() => setInput("How do I use the BTS Skytrain?")} />
+                  <QuickPill icon="🛕" label="Temples" onClick={() => setInput("Dress code for the Grand Palace?")} />
+                </motion.div>
+            </div>
+          )}
+
+          <div className="space-y-10 max-w-5xl mx-auto">
+            <AnimatePresence initial={false}>
+              {messages.map((m, i) => (
+                <motion.div 
+                  initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                  key={m.id || i} 
+                  className={`flex gap-5 ${m.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                >
+                  <div className={`w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center font-black text-xs shadow-lg transition-transform hover:scale-110 active:scale-90 cursor-default ${m.sender === 'user' ? 'bg-panel text-brand' : 'bg-brand text-panel ring-4 ring-brand/10'}`}>
+                    {m.sender === 'user' ? 'ME' : 'RB'}
+                  </div>
+                  <div className={`relative group max-w-[85%] md:max-w-[70%]`}>
+                     <div className={`p-5 rounded-[2rem] text-[15px] leading-relaxed shadow-xl border-b-4 transition-all hover:shadow-2xl ${
+                       m.sender === 'user' 
+                       ? 'bg-panel text-white rounded-tr-none border-brand/20' 
+                       : 'bg-white border border-slate-100 text-slate-800 rounded-tl-none border-slate-200'
+                     }`}>
+                        {m.hasImage && (
+                          <div className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-brand bg-brand/5 w-fit px-3 py-1.5 rounded-full border border-brand/10">
+                            <ImageIcon className="w-3.5 h-3.5" />
+                            Visual Intelligence Intercepted
+                          </div>
+                        )}
+                        <div className="prose prose-slate prose-sm text-inherit max-w-none prose-p:leading-relaxed prose-li:my-1 prose-headings:text-inherit prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tighter prose-strong:text-inherit prose-code:text-brand prose-pre:bg-panel prose-pre:text-white prose-img:rounded-2xl">
+                          <ReactMarkdown>{m.content}</ReactMarkdown>
+                        </div>
+                     </div>
+                     <div className={`absolute top-full mt-2 text-[9px] font-bold uppercase tracking-widest text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${m.sender === 'user' ? 'right-4' : 'left-4'}`}>
+                        {m.timestamp ? new Date(m.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Transmitting...'}
+                     </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            
+            {isTyping && (
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex gap-5"
+              >
+                 <div className="w-10 h-10 rounded-2xl bg-brand shrink-0 flex items-center justify-center font-black text-xs shadow-lg ring-4 ring-brand/10 text-panel">RB</div>
+                 <div className="bg-white border border-slate-100 p-5 rounded-[2rem] rounded-tl-none flex items-center gap-2 shadow-xl border-b-4 border-slate-200 min-w-[80px] justify-center">
+                    <span className="w-2 h-2 bg-brand rounded-full animate-bounce [animation-duration:0.6s]" />
+                    <span className="w-2 h-2 bg-brand/60 rounded-full animate-bounce [animation-duration:0.6s] [animation-delay:0.1s]" />
+                    <span className="w-2 h-2 bg-brand/30 rounded-full animate-bounce [animation-duration:0.6s] [animation-delay:0.2s]" />
+                 </div>
+              </motion.div>
+            )}
+            <div ref={messagesEndRef} className="h-4" />
+          </div>
+        </div>
+
+        {/* Input Area */}
+        <div className="p-4 md:p-8 bg-[#FDFCFB] border-t border-slate-100 relative">
+          <AnimatePresence>
+            {isListening && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="absolute -top-14 left-1/2 -translate-x-1/2 z-30"
+              >
+                <div className="flex items-center gap-3 px-6 py-2.5 bg-red-500 text-white rounded-full shadow-2xl border border-red-400 font-bold text-[11px] uppercase tracking-[0.2em]">
+                   <div className="flex gap-1">
+                      <motion.div animate={{ height: [4, 12, 4] }} transition={{ repeat: Infinity, duration: 0.6 }} className="w-1 bg-white rounded-full" />
+                      <motion.div animate={{ height: [8, 4, 8] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-1 bg-white rounded-full" />
+                      <motion.div animate={{ height: [4, 10, 4] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="w-1 bg-white rounded-full" />
+                   </div>
+                   Voice Link Active
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="absolute inset-0 bg-gradient-to-t from-white to-transparent pointer-events-none -top-12 h-12" />
+          
+          <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto relative z-10">
+            <AnimatePresence>
+              {selectedImage && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  className="absolute bottom-full mb-6 left-0 group"
+                >
+                  <div className="relative p-2 bg-white rounded-2xl shadow-2xl border border-slate-100">
+                    <img 
+                      src={selectedImage} 
+                      alt="Intercept preview" 
+                      className="h-40 w-auto rounded-xl object-contain grayscale-[0.2] hover:grayscale-0 transition-all duration-500" 
+                      referrerPolicy="no-referrer"
+                    />
+                    <button 
+                      type="button"
+                      onClick={clearImage}
+                      className="absolute -top-3 -right-3 bg-red-500 text-white p-2 rounded-full shadow-2xl hover:bg-red-600 transition-colors transform hover:scale-110"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-brand text-center animate-pulse">Image Analysis Queued</div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <div className="flex gap-3 items-center bg-slate-100 p-2 rounded-2xl border border-slate-200 shadow-inner">
-               <input 
-                 type="file"
-                 ref={fileInputRef}
-                 onChange={handleImageSelect}
-                 accept="image/*"
-                 className="hidden"
-               />
-               <button 
-                 type="button"
-                 onClick={() => fileInputRef.current?.click()}
-                 className={`p-2 rounded-xl transition-all flex items-center gap-2 ${selectedImage ? 'text-brand bg-white' : 'text-slate-400 hover:text-brand hover:bg-white'}`}
-               >
-                 <ImageIcon className="w-6 h-6" />
-                 {!selectedImage && <span className="hidden sm:inline text-[10px] uppercase font-black tracking-widest">Scan Intel</span>}
-               </button>
+            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center bg-white p-3 rounded-[2.5rem] border-2 border-slate-100 shadow-2xl shadow-slate-200/50 hover:border-brand/30 transition-all duration-500 group focus-within:border-brand focus-within:ring-8 focus-within:ring-brand/5">
+               <div className="flex items-center gap-2 pl-2">
+                 <input 
+                   type="file"
+                   ref={fileInputRef}
+                   onChange={handleImageSelect}
+                   accept="image/*"
+                   className="hidden"
+                 />
+                 <button 
+                   type="button"
+                   onClick={() => fileInputRef.current?.click()}
+                   className={`w-12 h-12 rounded-full transition-all flex items-center justify-center relative overflow-hidden group ${selectedImage ? 'bg-brand text-panel ring-4 ring-brand/20' : 'bg-slate-50 text-slate-400 hover:text-brand hover:bg-white border border-slate-100'}`}
+                 >
+                   <ImageIcon className="w-6 h-6 relative z-10" />
+                   {selectedImage && <motion.div layoutId="img-badge" className="absolute inset-0 bg-brand/20 animate-pulse" />}
+                 </button>
+                 
+                 <button 
+                   type="button"
+                   onClick={toggleListening}
+                   className={`w-12 h-12 rounded-full transition-all flex items-center justify-center ${isListening ? 'bg-red-500 text-white ring-4 ring-red-100' : 'bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-white border border-slate-100'}`}
+                   title={isListening ? "Stop Listening" : "Start Voice Input"}
+                 >
+                   {isListening ? <MicOff className="w-5 h-5 animate-pulse" /> : <Mic className="w-5 h-5" />}
+                 </button>
+               </div>
                
-               <div className="flex-1 bg-transparent px-4 py-2 text-sm outline-none font-medium placeholder:text-slate-400">
+               <div className="flex-1 px-4 py-2">
                   <input 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder={selectedImage ? "Describe this image for analysis..." : t.placeholder}
-                    className="w-full bg-transparent border-none focus:ring-0 outline-none font-bold"
+                    placeholder={selectedImage ? "Describe this image for neural analysis..." : t.placeholder}
+                    className="w-full bg-transparent border-none focus:ring-0 outline-none font-bold text-slate-700 placeholder:text-slate-300 transition-all text-base"
                   />
                </div>
                
                <button 
-                  type="button"
-                  onClick={toggleListening}
-                  className={`p-2 rounded-xl transition-all ${isListening ? 'text-red-500 bg-red-50 animate-pulse' : 'text-slate-400 hover:text-brand hover:bg-white'}`}
-                  title={isListening ? "Stop Listening" : "Start Voice Input"}
-                >
-                  {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                </button>
-               <button 
                   type="submit"
                   disabled={(!input.trim() && !selectedImage) || isTyping || !auth.currentUser}
-                  className="bg-brand hover:bg-brand-hover text-panel font-black py-2.5 px-8 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-brand/20 disabled:opacity-50 disabled:shadow-none"
+                  className="bg-panel hover:bg-slate-800 text-brand font-black py-4 px-10 rounded-full text-xs uppercase tracking-widest transition-all shadow-xl disabled:opacity-30 disabled:grayscale transform active:scale-95 flex items-center gap-3 group/btn"
                >
-                 {!auth.currentUser ? "Neural Lock" : t.transmit}
+                 <span>{!auth.currentUser ? "LOCKED" : t.transmit}</span>
+                 <Send className={`w-4 h-4 transition-transform ${isTyping ? 'animate-ping' : 'group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1'}`} />
                </button>
             </div>
           </form>
@@ -599,36 +680,5 @@ function InfoCard({ icon, title, status, desc }: any) {
        </div>
        <p className="text-[10px] text-slate-500 font-medium leading-tight">{desc}</p>
     </div>
-  );
-}
-
-function QuickAsk({ label, onClick }: { label: string, onClick: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className="px-4 py-2 border border-ink/5 rounded-full text-xs hover:border-gold hover:text-gold transition-all bg-white shadow-sm"
-    >
-      {label}
-    </button>
-  );
-}
-
-function Compass(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-    </svg>
   );
 }
