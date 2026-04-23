@@ -66,6 +66,30 @@ const TACTICAL_INTEL: Record<string, any[]> = {
       question: 'Vaping & E-Cigarettes',
       answer: 'Possession and use of e-cigarettes or vapes are illegal in Thailand. Penalties include heavy fines (up to 30,000 THB) and potential prison time. Do not bring them into the country.',
       category: 'safety'
+    },
+    {
+      id: 'scam-3',
+      question: 'Jet Ski Damage Scam',
+      answer: 'Common in Pattaya and Phuket. After returning a jet ski, the operator claims you caused damage and demands 50,000+ THB. They often use fake paint to hide old cracks. TACTIC: Always take HD photos/videos of the entire jet ski BEFORE renting. If intimidated, call the Tourist Police (1155) immediately.',
+      category: 'safety'
+    },
+    {
+      id: 'scam-4',
+      question: 'Gem & Jewelry Scams',
+      answer: 'Friendly locals or drivers may claim there is a "Government Special Sale" for gems that can be resold for profit abroad. This is 100% false. You will buy low-quality stones at 10x their value. INTELLIGENCE: The Thai government does NOT run sales or endorse private gem shops. Buy only from reputable established jewelers with certifications.',
+      category: 'safety'
+    },
+    {
+      id: 'law-3',
+      question: 'Alcohol Sales & Misconceptions',
+      answer: 'Sales are STRICTLY restricted to 11:00-14:00 and 17:00-24:00. Buying alcohol on religious holidays or election days is prohibited. Public drinking near schools, hospitals, or temples is an arrestable offense. Pro-tip: Do not drink on trains or in parks.',
+      category: 'safety'
+    },
+    {
+      id: 'law-4',
+      question: 'Public Etiquette & Decorum',
+      answer: 'Never touch a Thai person\'s head (the most sacred part of the body). Do not point your feet at people, monks, or Buddha images (the lowest/dirtiest part). Shirts MUST be worn in public (outside beaches/pools); walking shirtless in cities or shops can attract fines and is considered highly offensive.',
+      category: 'safety'
     }
   ]
 };

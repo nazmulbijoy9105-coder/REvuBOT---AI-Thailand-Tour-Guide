@@ -220,7 +220,7 @@ export default function Chat() {
     if (!userScrolledUp) {
       scrollToBottom();
     }
-  }, [messages]);
+  }, [messages, streamingMessage]);
 
   // Force scroll when typing starts or send happens
   React.useEffect(() => {
@@ -448,7 +448,12 @@ export default function Chat() {
 
       setStreamingMessage({ id: aiMsgRef.id, content: '' });
 
+      let firstChunk = true;
       for await (const chunk of stream) {
+        if (firstChunk) {
+          setIsTyping(false);
+          firstChunk = false;
+        }
         fullContent += chunk.text;
         setStreamingMessage({ id: aiMsgRef.id, content: fullContent });
       }
@@ -458,6 +463,18 @@ export default function Chat() {
     } catch (err: any) {
       console.error("Neural Error:", err);
       let errorMessage = "⚠️ **SIGNAL INTERRUPT**: Neural Engine offline.";
+      
+      const errorStr = err.message || "";
+      if (errorStr.includes("API KEY")) {
+        errorMessage = "⚠️ **ACCESS DENIED**: Your API Key is invalid or missing. Please check your **Settings** menu and ensure the Gemini API key is correctly configured.";
+      } else if (errorStr.includes("Quota") || errorStr.includes("Rate limit")) {
+        errorMessage = "⚠️ **BANDS SATURATED**: Neural quota exceeded. Please wait a few minutes for the signal to clear or try switching to a different engine.";
+      } else if (errorStr.includes("Safety")) {
+        errorMessage = "⚠️ **PROTOCOL VIOLATION**: The request was blocked by safety filters. Please refine your query parameters.";
+      } else if (errorStr.includes("Failed to fetch")) {
+        errorMessage = "⚠️ **LINK SEVERED**: Network connection lost. Please check your upstream link.";
+      }
+
       await addDoc(collection(db, `conversations/${convId}/messages`), {
         sender: 'ai',
         content: errorMessage,

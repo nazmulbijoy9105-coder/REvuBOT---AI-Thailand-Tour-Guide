@@ -93,6 +93,10 @@ async function startServer() {
         });
         
         res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('X-Accel-Buffering', 'no'); // Disable Nginx buffering
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        
         for await (const chunk of streamingResult) {
           const chunkText = chunk.text;
           if (chunkText) {
@@ -140,6 +144,10 @@ async function startServer() {
         }
 
         res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        
         const reader = grokRes.body?.getReader();
         if (!reader) throw new Error("Grok Stream Reader failed.");
 
@@ -177,6 +185,12 @@ async function startServer() {
       if (error.message?.includes("API key not valid")) {
         clientError = "INVALID API KEY: The Gemini API Key provided in settings is rejected by Google. Please check your credentials.";
         statusCode = 401;
+      } else if (error.message?.includes("quota") || error.message?.includes("limit")) {
+        clientError = "BANDS SATURATED: Neural quota exceeded. (Google API Quota reached)";
+        statusCode = 429;
+      } else if (error.message?.includes("safety")) {
+        clientError = "PROTOCOL VIOLATION: Request blocked by safety filters.";
+        statusCode = 400;
       }
 
       res.status(statusCode).json({ 

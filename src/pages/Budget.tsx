@@ -1,6 +1,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Calculator, ArrowRightLeft, TrendingUp, Wallet, Info } from 'lucide-react';
+import { Calculator, ArrowRightLeft, TrendingUp, Wallet, Info, LineChart as ChartIcon } from 'lucide-react';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Legend
+} from 'recharts';
 
 const COMMON_CURRENCIES = [
   { code: 'USD', name: 'US Dollar', symbol: '$' },
@@ -46,6 +56,16 @@ export default function Budget() {
   };
 
   const thbAmount = convertToTHB(amount);
+
+  const chartData = [
+    { name: 'Day 1', USD: 36.42, BDT: 0.302 },
+    { name: 'Day 2', USD: 36.55, BDT: 0.301 },
+    { name: 'Day 3', USD: 36.48, BDT: 0.304 },
+    { name: 'Day 4', USD: 36.62, BDT: 0.303 },
+    { name: 'Day 5', USD: 36.58, BDT: 0.305 },
+    { name: 'Day 6', USD: 36.70, BDT: 0.306 },
+    { name: 'Day 7', USD: 36.50, BDT: 0.300 },
+  ];
 
   return (
     <div className="bg-surface min-h-screen py-24 px-8">
@@ -148,6 +168,107 @@ export default function Budget() {
             </div>
           </div>
         </div>
+
+        {/* Currency Fluctuation Chart */}
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mt-12 bg-white border border-slate-200 rounded-3xl p-8 shadow-2xl shadow-slate-200/50"
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-brand/10 rounded-xl flex items-center justify-center text-brand">
+                <ChartIcon className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-xl font-black uppercase tracking-tight">Neural Price Tracker</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">7-Day Historical Volatility Analysis</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-brand rounded-full"></div>
+                <span className="text-[10px] font-black uppercase text-slate-500">USD/THB</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-panel rounded-full"></div>
+                <span className="text-[10px] font-black uppercase text-slate-500">BDT/THB</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-[400px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                  dy={10}
+                />
+                <YAxis 
+                  yAxisId="left"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                  domain={['auto', 'auto']}
+                />
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                  domain={['auto', 'auto']}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1E293B', 
+                    border: 'none', 
+                    borderRadius: '16px',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'
+                  }}
+                  itemStyle={{ color: '#fff' }}
+                />
+                <Line 
+                  yAxisId="left"
+                  type="monotone" 
+                  dataKey="USD" 
+                  stroke="#FF5A5F" 
+                  strokeWidth={4}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
+                  name="USD to THB"
+                />
+                <Line 
+                  yAxisId="right"
+                  type="monotone" 
+                  dataKey="BDT" 
+                  stroke="#1E293B" 
+                  strokeWidth={4}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
+                  name="BDT to THB"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          
+          <div className="mt-8 flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-brand shadow-sm">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+            <p className="text-[10px] text-slate-500 font-bold leading-relaxed uppercase tracking-wide">
+              Market analysis indicates <span className="text-brand">stable corridor</span> for South Asian currencies. Intelligence recommends exchanging at city branches for peak parity.
+            </p>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
