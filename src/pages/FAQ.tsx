@@ -8,11 +8,40 @@ const CATEGORIES = [
   { id: 'visa', name: 'Visa & Entry', icon: ShieldAlert, color: 'text-red-500' },
   { id: 'transport', name: 'Transportation', icon: Train, color: 'text-blue-500' },
   { id: 'safety', name: 'Laws & Scams', icon: ShieldAlert, color: 'text-red-600' },
+  { id: 'hotels', name: 'Hotels & Stay', icon: MapPin, color: 'text-purple-500' },
   { id: 'culture', name: 'Culture & Etiquette', icon: Landmark, color: 'text-gold' },
   { id: 'food', name: 'Food & Dining', icon: MapPin, color: 'text-green-500' },
 ];
 
 const TACTICAL_INTEL: Record<string, any[]> = {
+  visa: [
+    {
+      id: 'visa-1',
+      question: 'Visa on Arrival (VOA) Requirements',
+      answer: 'Available for 19 countries (including India, Bhutan). Requirements: Passport valid for 30+ days, 15-day exit proof, 1,000 THB/person (2,000 THB if not waived). Bangladesh citizens usually require a pre-approved E-Visa from the Royal Thai Embassy.',
+      category: 'visa'
+    },
+    {
+      id: 'visa-2',
+      question: 'Visa Overstay Penalties',
+      answer: 'Fine of 500 THB per day (max 20,000 THB). Long overstays (>90 days) lead to blacklist entry bans (5-10 years). Always use REvuBOT for renewal alerts!',
+      category: 'visa'
+    }
+  ],
+  hotels: [
+    {
+      id: 'hotel-1',
+      question: 'Average Accommodation Prices',
+      answer: 'Bangkok: Low-range (Hostels/Guesthouses) 300-800 THB/night. Mid-range 1,200-2,500 THB. Luxury 5,000+ THB. Chiang Mai is typically 20-30% cheaper than Phuket/Bangkok.',
+      category: 'hotels'
+    },
+    {
+      id: 'hotel-2',
+      question: 'Booking Best Practices',
+      answer: 'Use Agoda or Booking.com for international rates. For "Single to Team" variations, large groups should check Airbnb Global for "Pool Villas" in Sukhumvit or Phuket, which are cheaper per head than multiple hotel rooms.',
+      category: 'hotels'
+    }
+  ],
   safety: [
     {
       id: 'scam-1',

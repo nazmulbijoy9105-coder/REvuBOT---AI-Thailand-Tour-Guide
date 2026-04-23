@@ -23,6 +23,7 @@ export default function Planner() {
     days: '3',
     vibe: 'culture',
     budget: '500',
+    groupSize: 'solo',
     interests: ''
   });
   const [result, setResult] = React.useState<string | null>(null);
@@ -48,14 +49,18 @@ export default function Planner() {
     setResult(null);
     try {
       const prompt = `Generate a STRATEGIC ${mission.days}-day travel mission for ${mission.destination}. 
-      - Budget Constraint: $${mission.budget} TOTAL.
+      - Traveler Profile: ${mission.groupSize} execution.
+      - Budget Constraint: $${mission.budget} TOTAL for the entire group.
       - Strategic Vibe: ${mission.vibe}. 
       - Objectives: ${mission.interests}. 
       
-      CRITICAL: Logic must account for CURRENT season in Thailand (April is peak summer).
+      CRITICAL: Logic must account for CURRENT season in Thailand.
+      - If ${mission.groupSize} is "team/large group", focus on bulk transit (minivan), large villas, and group-optimized dining.
+      - If solo, focus on hostel culture, safety, and solo-friendly street food sectors. 
+
       Include: 
-      1. Morning/Afternoon/Evening Tactical Ops.
-      2. Budget breakdown per Day.
+      1. Morning/Afternoon/Evening Tactical Ops formatted for ${mission.groupSize}.
+      2. Budget breakdown per Day (Total Group vs Per Person).
       3. Weather survival tips.
       4. Scam alerts for ${mission.destination}.`;
       
@@ -131,14 +136,28 @@ export default function Planner() {
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Budget ($ Total)</label>
-                        <input 
-                          type="number"
-                          value={mission.budget}
-                          onChange={(e) => setMission({...mission, budget: e.target.value})}
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Group Alignment</label>
+                        <select 
+                          value={mission.groupSize}
+                          onChange={(e) => setMission({...mission, groupSize: e.target.value})}
                           className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm outline-none focus:border-brand"
-                        />
+                        >
+                          <option value="solo">Solo Operative</option>
+                          <option value="couple">Duo (Couple)</option>
+                          <option value="small-group">Squad (3-5)</option>
+                          <option value="team">Team (6+)</option>
+                        </select>
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Budget ($ Total Group)</label>
+                      <input 
+                        type="number"
+                        value={mission.budget}
+                        onChange={(e) => setMission({...mission, budget: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm outline-none focus:border-brand"
+                      />
                     </div>
 
                     <div>

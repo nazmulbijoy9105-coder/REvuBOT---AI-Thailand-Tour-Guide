@@ -77,6 +77,7 @@ async function startServer() {
             1. LANGUAGE: Prioritize ${language}. Support English, Thai, Hindi, Sinhala, and BANGLA (very important for Bangladesh-Thailand corridor).
             2. EXPERTISE:
                - SMART PLANNING: Generate 1-14 day itineraries with logic for budget (e.g. "under $200"), weather, and season.
+               - GROUP LOGISTICS: Tailor advice for Solo Operatives (safety, hosteling, single street food items) vs Teams/Groups (pool villas, minivan private hire, group discounts, table booking).
                - LEGAL/SAFETY: Expert on Visa rules (specifically for South Asian/Bangladesh tourists). 
                - SCAM ADVISORY: Warn about "Grand Palace Closed" scams (commission-based shop traps), "Fixed Price" Taxis (insist on 35 THB start meter), "Fast Meters" in Taxis, and Jet Ski damage scams (fake damage demands).
                - PROHIBITED ACTIONS: Emphasize penalties for Vaping (up to 30,000 THB fine + prison), Lèse-majesté (insulting Monarchy = 3-15 years prison), and overstaying visas (500 THB/day fine + deportation/blacklist).
