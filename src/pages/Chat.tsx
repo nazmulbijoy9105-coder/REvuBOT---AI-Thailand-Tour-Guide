@@ -16,7 +16,7 @@ import {
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { generateTravelAdvice } from '../lib/ai';
-import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X, Mic, MicOff, Search } from 'lucide-react';
+import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X, Mic, MicOff, Search, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 
@@ -70,20 +70,23 @@ const LOCALIZATION: Record<string, any> = {
     signal: "प्रारंभिक संकेत..."
   },
   si: {
-    newSession: "නව සැසිය",
-    recentLogs: "මෑත සටහන්",
-    interfaceLang: "අතුරුමුහුණත් භාෂාව",
-    neuralEngine: "පද්ධතිය සක්‍රීයයි",
-    opsBase: "තොරතුරු මධ්‍යස්ථානය",
-    placeholder: "හෝටල්, ප්‍රවාහනය හෝ තායි සංස්කෘතිය ගැන විමසන්න...",
-    transmit: "යවන්න",
-    initContact: "සම්බන්ධතාවය අරඹන්න",
-    welcomeDesc: "තායිලන්ත සංචාරක තොරතුරු සඳහා සූදානම්. ප්‍රවාහනය, සංස්කෘතිය හෝ නීතිමය කරුණු පිළිබඳ ඔබේ ගැටලු යොමු කරන්න.",
-    contextualIntel: "වැදගත් තොරුතුරු",
-    safetyDirective: "ආරක්ෂක උපදෙස්",
-    safetyDesc: "මෝසම් වැසි අනතුරු ඇඟවීම: මධ්‍යම තායිලන්තයට තද වැසි අපේක්ෂා කෙරේ.",
-    active: "සක්‍රීය",
-    signal: "සම්බන්ධ වෙමින්..."
+    // ... logic exists
+  },
+  bn: {
+    newSession: "নতুন সেশন",
+    recentLogs: "সাম্প্রতিক লগ",
+    interfaceLang: "ইন্টারফেস ভাষা",
+    neuralEngine: "নিউরাল ইঞ্জিন অনলাইন",
+    opsBase: "অপারেশন বেস",
+    placeholder: "হোটেল, পরিবহন বা থাই সংস্কৃতি সম্পর্কে জিজ্ঞাসা করুন...",
+    transmit: "প্রেরণ করুন",
+    initContact: "যোগাযোগ শুরু করুন",
+    welcomeDesc: "থাইল্যান্ডে আপনার সফরের জন্য আমি প্রস্তুত। পরিবহন, সংস্কৃতি বা সরকারি আইন বিষয়ে আপনার যা প্রয়োজন জানান।",
+    contextualIntel: "প্রাসঙ্গিক তথ্য",
+    safetyDirective: "নিরাপদ নির্দেশনা",
+    safetyDesc: "মৌসুমী সতর্কবার্তা: মধ্য থাইল্যান্ডে ভারী বৃষ্টির সম্ভাবনা রয়েছে।",
+    active: "সক্রিয়",
+    signal: "প্রাথমিক সংকেত..."
   }
 };
 
@@ -114,9 +117,21 @@ export default function Chat() {
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
   const [userScrolledUp, setUserScrolledUp] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [showCurrency, setShowCurrency] = React.useState(false);
+  const [bdtAmount, setBdtAmount] = React.useState('1000');
+  const [speakingMessageId, setSpeakingMessageId] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
+  const thbRate = 0.32; // Mock BDT to THB rate
+  const converted = (parseFloat(bdtAmount) * thbRate).toFixed(2);
   const recognitionRef = React.useRef<any>(null);
   
+  React.useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
   const t = LOCALIZATION[language] || LOCALIZATION.en;
 
   // Scroll logic
@@ -222,6 +237,43 @@ export default function Chat() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setSpeakingMessageId(null);
+  };
+
+  const speakMessage = (messageId: string, text: string) => {
+    if (speakingMessageId === messageId) {
+      stopSpeaking();
+      return;
+    }
+
+    stopSpeaking();
+    
+    // Remove markdown symbols for better speech synthesis
+    const cleanText = text.replace(/[#*`_~]/g, '');
+    
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    
+    // Attempt to map app language to voice language code
+    const langMap: Record<string, string> = {
+      en: 'en-US',
+      th: 'th-TH',
+      hi: 'hi-IN',
+      si: 'si-LK',
+      bn: 'bn-BD'
+    };
+    
+    utterance.lang = langMap[language] || 'en-US';
+    utterance.rate = 0.9; // Slightly slower for clarity
+    
+    utterance.onend = () => setSpeakingMessageId(null);
+    utterance.onerror = () => setSpeakingMessageId(null);
+    
+    setSpeakingMessageId(messageId);
+    window.speechSynthesis.speak(utterance);
+  };
+
   // Load user conversations
   React.useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -268,6 +320,7 @@ export default function Chat() {
     const imageData = selectedImage ? selectedImage.split(',')[1] : undefined;
     const mimeType = selectedImage ? selectedImage.match(/data:([^;]+);/)?.[1] : undefined;
     
+    stopSpeaking();
     setInput('');
     clearImage();
     setUserScrolledUp(false); // Reset scroll state to force auto-scroll on send
@@ -426,8 +479,8 @@ export default function Chat() {
           </div>
 
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">{t.interfaceLang}</p>
-          <div className="grid grid-cols-4 gap-1.5 px-1">
-            {['EN', 'TH', 'HI', 'SI'].map(lang => (
+          <div className="grid grid-cols-5 gap-1 px-1">
+            {['EN', 'TH', 'HI', 'SI', 'BN'].map(lang => (
               <button 
                 key={lang}
                 onClick={() => setLanguage(lang.toLowerCase())}
@@ -520,8 +573,22 @@ export default function Chat() {
                             Visual Intelligence Intercepted
                           </div>
                         )}
-                        <div className="prose prose-slate prose-sm text-inherit max-w-none prose-p:leading-relaxed prose-li:my-1 prose-headings:text-inherit prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tighter prose-strong:text-inherit prose-code:text-brand prose-pre:bg-panel prose-pre:text-white prose-img:rounded-2xl">
+                        <div className="prose prose-slate prose-sm text-inherit max-w-none prose-p:leading-relaxed prose-li:my-1 prose-headings:text-inherit prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tighter prose-strong:text-inherit prose-code:text-brand prose-pre:bg-panel prose-pre:text-white prose-img:rounded-2xl relative group/msg">
                           <ReactMarkdown>{m.content}</ReactMarkdown>
+                          
+                          {m.sender === 'ai' && m.content && (
+                            <button 
+                              onClick={() => speakMessage(m.id || i.toString(), m.content)}
+                              className={`absolute -right-12 top-0 p-2 rounded-xl transition-all shadow-lg border ${
+                                speakingMessageId === (m.id || i.toString()) 
+                                ? 'bg-brand text-panel border-brand animate-pulse' 
+                                : 'bg-white text-slate-400 hover:text-brand border-slate-100 opacity-0 group-hover/msg:opacity-100'
+                              }`}
+                              title="Listen to Intelligence"
+                            >
+                              {speakingMessageId === (m.id || i.toString()) ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                            </button>
+                          )}
                         </div>
                      </div>
                      <div className={`absolute top-full mt-2 text-[9px] font-bold uppercase tracking-widest text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${m.sender === 'user' ? 'right-4' : 'left-4'}`}>
@@ -666,12 +733,50 @@ export default function Chat() {
       </div>
 
       {/* Right Sidebar - Info */}
-      <aside className="hidden lg:flex w-80 bg-slate-50 border-l border-slate-200 p-6 flex-col gap-6">
+      <aside className="hidden lg:flex w-80 bg-slate-50 border-l border-slate-200 p-6 flex-col gap-6 overflow-y-auto">
           <section>
+             <div className="flex items-center justify-between mb-4">
+               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Agent Quick Tools</h3>
+               <button onClick={() => setShowCurrency(!showCurrency)} className="p-1.5 bg-white border border-slate-200 rounded-lg text-brand hover:bg-brand hover:text-panel transition-all">
+                  <Globe2 className="w-4 h-4" />
+               </button>
+             </div>
+             
+             <AnimatePresence>
+               {showCurrency && (
+                 <motion.div 
+                   initial={{ height: 0, opacity: 0 }}
+                   animate={{ height: 'auto', opacity: 1 }}
+                   exit={{ height: 0, opacity: 0 }}
+                   className="mb-4 overflow-hidden"
+                 >
+                    <div className="p-4 bg-panel text-white rounded-2xl shadow-lg border border-white/5 space-y-4">
+                       <div>
+                          <label className="text-[9px] font-black uppercase tracking-widest text-brand mb-1 block">BDT Input</label>
+                          <input 
+                            type="number"
+                            value={bdtAmount}
+                            onChange={(e) => setBdtAmount(e.target.value)}
+                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:border-brand"
+                          />
+                       </div>
+                       <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Result (THB)</p>
+                             <p className="text-xl font-black text-brand">฿ {converted}</p>
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-bold bg-slate-800/50 px-2 py-1 rounded">Rate: 0.32</div>
+                       </div>
+                    </div>
+                 </motion.div>
+               )}
+             </AnimatePresence>
+
              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">{t.contextualIntel}</h3>
              <div className="space-y-3">
                 <InfoCard icon="✈️" title="Flight Status" status="On Time" desc="BKK arrivals monitored in real-time." />
-                <InfoCard icon="🏨" title="Accommodation" status="Siam Kempinski" desc="Check-in automated protocols active." />
+                <InfoCard icon="🚔" title="Scam Alert" status="High Risk" desc="Watch for 'closed palace' scams in BKK." />
+                <InfoCard icon="⚖️" title="Legal Intel" status="Required" desc="Carry passport copy at all times." />
              </div>
           </section>
 

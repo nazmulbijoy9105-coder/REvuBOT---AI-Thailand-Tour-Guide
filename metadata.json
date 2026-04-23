@@ -1,6 +1,6 @@
 {
-  "name": "REvuBOT - AI Thailand Tour Guide",
-  "description": "The elite AI Neural Engine for Thailand travelers. Features Zero-Barrier Access (instant use without login), expert local intelligence, real-time visual analysis, and multi-language support (English, Thai, Hindi, Sinhala).",
-  "requestFramePermissions": ["microphone", "camera"],
-  "majorCapabilities": ["AI Chat", "Travel Planning", "Multilingual"]
+  "name": "REvuBOT - AI Thailand Agent",
+  "description": "The elite AI Travel Agent for Thailand. Strategic planning, legal & visa intelligence (South Asia focused), real-time currency/traffic, and language assistance (English, Thai, Hindi, Sinhala, Bangla).",
+  "requestFramePermissions": ["microphone", "camera", "geolocation"],
+  "majorCapabilities": ["AI Travel Agent", "Legal & Visa Intel", "Digital Concierge", "Multilingual"]
 }

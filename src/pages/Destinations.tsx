@@ -43,6 +43,17 @@ const DESTINATIONS_DATA = [
 ];
 
 export default function Destinations() {
+  const [insiderMode, setInsiderMode] = React.useState(false);
+
+  const filteredData = insiderMode 
+    ? DESTINATIONS_DATA.map(d => ({
+        ...d,
+        name: `HIDDEN ${d.name}`,
+        keyInfo: [...d.keyInfo, 'Insider Spot', 'Local Secret'],
+        description: `EXCLUSIVELY FOR AGENTS: ${d.description} Secret entry via back alley recommended.`
+      }))
+    : DESTINATIONS_DATA;
+
   return (
     <div className="bg-[#FAF9F6] min-h-screen pt-24">
       <div className="max-w-7xl mx-auto px-8">
@@ -60,7 +71,15 @@ export default function Destinations() {
                </div>
                <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] text-panel">DESTINATION <br /> DEBRIEF.</h1>
              </div>
-             <div className="flex gap-12 pb-2 justify-center md:justify-start">
+             <div className="flex flex-col md:flex-row gap-8 items-center">
+                <button 
+                  onClick={() => setInsiderMode(!insiderMode)}
+                  className={`flex items-center gap-3 px-6 py-4 rounded-2xl border-2 transition-all font-black text-xs uppercase tracking-widest ${insiderMode ? 'bg-brand border-brand text-panel shadow-xl shadow-brand/20' : 'bg-white border-slate-200 text-slate-400 hover:border-brand/40'}`}
+                >
+                  <Compass className={`w-5 h-5 ${insiderMode ? 'animate-spin' : ''}`} />
+                  {insiderMode ? 'Insider Mode Active' : 'Enable Insider Mode'}
+                </button>
+              <div className="flex gap-12 pb-2">
                 <div>
                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Active Zones</p>
                    <p className="text-2xl font-serif text-panel italic">12+ Cities</p>
@@ -69,13 +88,14 @@ export default function Destinations() {
                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Intel Accuracy</p>
                    <p className="text-2xl font-serif text-panel italic">99.8%</p>
                 </div>
-             </div>
+              </div>
+            </div>
            </motion.div>
         </header>
 
         {/* Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1 px-1 bg-slate-200 border border-slate-200 shadow-2xl rounded-3xl overflow-hidden mb-24">
-          {DESTINATIONS_DATA.map((dest, i) => (
+          {filteredData.map((dest, i) => (
             <DestinationCard key={dest.id} destination={dest} index={i} />
           ))}
         </div>

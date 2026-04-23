@@ -34,7 +34,7 @@ export default function Home() {
               WITH AI.
             </h1>
             <p className="text-lg text-white/70 mb-10 max-w-xl font-medium leading-relaxed">
-              Professional guidance for international tourists. Visa verification, smart transit routing, and cultural etiquette in 4+ languages.
+              The elite AI Travel Agent for Thailand. Strategic mission planning, legal/visa intelligence, and digital concierge services in 5+ languages including Bangla.
             </p>
             <div className="flex flex-wrap gap-4">
               <Link to="/chat" className="btn-primary">
@@ -56,17 +56,17 @@ export default function Home() {
             <FeatureCard 
                icon={<div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-brand font-black">AI</div>}
                title="Multilingual Neural Engine"
-               description="High-precision translation and guidance in English, Thai, Hindi, and Sinhala. No language barrier left standing."
+               description="High-precision translation and guidance in English, Thai, Hindi, Sinhala, and Bangla. Specialized for the South Asia corridor."
             />
             <FeatureCard 
                icon={<div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black">RT</div>}
-               title="Smart Routing"
-               description="Local transit integration with BTS, MRT, and taxi providers. Real-time pricing and optimized paths."
+               title="Smart Mission Planning"
+               description="Autonomous 14-day itinerary synthesis with budget logic, weather awareness, and real-time transit optimization."
             />
              <FeatureCard 
                icon={<div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 font-black">GOV</div>}
-               title="Visa Compliance"
-               description="Stay informed on tourism regulations, local laws, and emergency protocols. Your safety, verified."
+               title="Legal & Safety Intel"
+               description="Verified visa rules, scam prevention alerts, and local law compliance. Mission safety is our highest priority."
             />
           </div>
         </div>
@@ -76,12 +76,12 @@ export default function Home() {
       <section className="py-24 border-t border-ink/10">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
            <div>
-             <div className="text-4xl font-serif mb-2 text-ink">4+</div>
+             <div className="text-4xl font-serif mb-2 text-ink">5+</div>
              <div className="text-xs uppercase tracking-widest text-ink/50">Languages</div>
            </div>
            <div>
-             <div className="text-4xl font-serif mb-2 text-ink">500+</div>
-             <div className="text-xs uppercase tracking-widest text-ink/50">Local Gems</div>
+             <div className="text-4xl font-serif mb-2 text-ink">1,200+</div>
+             <div className="text-xs uppercase tracking-widest text-ink/50">Insider Spots</div>
            </div>
            <div>
              <div className="text-4xl font-serif mb-2 text-ink">24/7</div>

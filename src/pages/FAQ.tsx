@@ -7,9 +7,39 @@ import { motion, AnimatePresence } from 'framer-motion';
 const CATEGORIES = [
   { id: 'visa', name: 'Visa & Entry', icon: ShieldAlert, color: 'text-red-500' },
   { id: 'transport', name: 'Transportation', icon: Train, color: 'text-blue-500' },
+  { id: 'safety', name: 'Laws & Scams', icon: ShieldAlert, color: 'text-red-600' },
   { id: 'culture', name: 'Culture & Etiquette', icon: Landmark, color: 'text-gold' },
   { id: 'food', name: 'Food & Dining', icon: MapPin, color: 'text-green-500' },
 ];
+
+const TACTICAL_INTEL: Record<string, any[]> = {
+  safety: [
+    {
+      id: 'scam-1',
+      question: 'The "Closed Palace" Scam',
+      answer: 'Tuk-tuk drivers may tell you the Grand Palace is "closed for a ceremony." They will then offer a cheap tour to "exclusive" shops. IGNORE THEM. The palace is almost never closed. This is a commission-based trap.',
+      category: 'safety'
+    },
+    {
+      id: 'scam-2',
+      question: 'Taxi Meter Scams',
+      answer: 'Always insist on "Meter, please." If they refuse or say "flat rate 300 baht," get out and find another. In Bangkok, the meter starts at 35 THB. Report unmetered taxis via the 1584 hotline.',
+      category: 'safety'
+    },
+    {
+      id: 'law-1',
+      question: 'Lèse-majesté Laws (Article 112)',
+      answer: 'Defaming, insulting, or threatening the Royal Family is a severe crime. Penalties range from 3 to 15 years in prison. Exercise extreme respect when discussing the monarchy.',
+      category: 'safety'
+    },
+    {
+      id: 'law-2',
+      question: 'Vaping & E-Cigarettes',
+      answer: 'Possession and use of e-cigarettes or vapes are illegal in Thailand. Penalties include heavy fines (up to 30,000 THB) and potential prison time. Do not bring them into the country.',
+      category: 'safety'
+    }
+  ]
+};
 
 export default function FAQ() {
   const [selectedCategory, setSelectedCategory] = React.useState('visa');
@@ -19,7 +49,11 @@ export default function FAQ() {
     const fetchFaqs = async () => {
       const q = query(collection(db, 'faqs'), where('category', '==', selectedCategory));
       const snap = await getDocs(q);
-      setFaqs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const dbFaqs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      // Merge with tactical intelligence if available
+      const hardcoded = TACTICAL_INTEL[selectedCategory] || [];
+      setFaqs([...hardcoded, ...dbFaqs]);
     };
     fetchFaqs();
   }, [selectedCategory]);

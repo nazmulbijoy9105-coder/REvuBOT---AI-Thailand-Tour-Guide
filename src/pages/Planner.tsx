@@ -22,6 +22,7 @@ export default function Planner() {
     destination: 'Bangkok',
     days: '3',
     vibe: 'culture',
+    budget: '500',
     interests: ''
   });
   const [result, setResult] = React.useState<string | null>(null);
@@ -46,12 +47,17 @@ export default function Planner() {
     setLoading(true);
     setResult(null);
     try {
-      const prompt = `Generate a detailed ${mission.days}-day travel itinerary for ${mission.destination}. 
-      The vibe should be ${mission.vibe}. 
-      Specific interests: ${mission.interests}. 
-      Include morning, afternoon, and evening activities. 
-      Suggested transit methods for each segment. 
-      Estimate costs in THB.`;
+      const prompt = `Generate a STRATEGIC ${mission.days}-day travel mission for ${mission.destination}. 
+      - Budget Constraint: $${mission.budget} TOTAL.
+      - Strategic Vibe: ${mission.vibe}. 
+      - Objectives: ${mission.interests}. 
+      
+      CRITICAL: Logic must account for CURRENT season in Thailand (April is peak summer).
+      Include: 
+      1. Morning/Afternoon/Evening Tactical Ops.
+      2. Budget breakdown per Day.
+      3. Weather survival tips.
+      4. Scam alerts for ${mission.destination}.`;
       
       const stream = await generateTravelAdvice(prompt, [], 'en');
       let text = '';
@@ -114,17 +120,28 @@ export default function Planner() {
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Duration (Days)</label>
-                       <input 
-                         type="number"
-                         value={mission.days}
-                         onChange={(e) => setMission({...mission, days: e.target.value})}
-                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm outline-none focus:border-brand"
-                       />
-                     </div>
-                     <div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Duration (Days)</label>
+                        <input 
+                          type="number"
+                          value={mission.days}
+                          onChange={(e) => setMission({...mission, days: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm outline-none focus:border-brand"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Budget ($ Total)</label>
+                        <input 
+                          type="number"
+                          value={mission.budget}
+                          onChange={(e) => setMission({...mission, budget: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm outline-none focus:border-brand"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Operational Vibe</label>
                         <select 
                           value={mission.vibe}
@@ -133,8 +150,7 @@ export default function Planner() {
                         >
                           {VIBES.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                         </select>
-                     </div>
-                  </div>
+                    </div>
 
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Specific Objectives (Optional)</label>
