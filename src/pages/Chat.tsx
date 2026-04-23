@@ -139,10 +139,10 @@ export default function Chat() {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   
   const scrollToBottom = (instant = false) => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({
-        top: scrollContainerRef.current.scrollHeight,
-        behavior: instant ? 'auto' : 'smooth'
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: instant ? 'auto' : 'smooth',
+        block: 'nearest'
       });
     }
   };
@@ -151,8 +151,8 @@ export default function Chat() {
   const handleScroll = () => {
     if (scrollContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-      // If user is more than 150px from bottom, they have "scrolled up"
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+      // If user is more than 100px from bottom, they have "scrolled up"
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       setUserScrolledUp(!isNearBottom);
     }
   };
@@ -160,10 +160,17 @@ export default function Chat() {
   React.useEffect(() => {
     // Only auto-scroll if user hasn't manually scrolled up to read history
     // OR if the system is typing (AI is responding) and they were already at the bottom
-    if (!userScrolledUp || isTyping) {
+    if (!userScrolledUp) {
       scrollToBottom();
     }
-  }, [messages, isTyping]);
+  }, [messages]);
+
+  // Force scroll when typing starts or send happens
+  React.useEffect(() => {
+    if (isTyping && !userScrolledUp) {
+      scrollToBottom();
+    }
+  }, [isTyping]);
 
   // Initial scroll on load
   React.useEffect(() => {
@@ -517,7 +524,7 @@ export default function Chat() {
         <div 
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-[#FDFCFB] scroll-smooth selection:bg-brand/30"
+          className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-[#FDFCFB] selection:bg-brand/30"
         >
           {messages.length === 0 && !id && (
             <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto space-y-8 py-12">

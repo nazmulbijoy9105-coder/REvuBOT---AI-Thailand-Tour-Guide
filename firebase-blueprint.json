@@ -76,6 +76,19 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["action", "performedBy", "timestamp"]
+    },
+    "Feedback": {
+      "title": "User Feedback",
+      "description": "Feedback submitted by users.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "message": { "type": "string" },
+        "category": { "type": "string", "enum": ["bug", "suggestion", "other"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "message", "timestamp"]
     }
   },
   "firestore": {
@@ -106,6 +119,10 @@
     "/audit_logs/{logId}": {
       "schema": "AuditLog",
       "description": "System audit tracking"
+    },
+    "/feedback/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "User feedback submissions"
     }
   }
 }

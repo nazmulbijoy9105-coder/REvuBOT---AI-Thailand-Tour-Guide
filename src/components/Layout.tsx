@@ -2,11 +2,13 @@ import React from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { User, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { MapPin, MessageSquare, Shield, HelpCircle, LogOut, Menu, X, Landmark } from 'lucide-react';
+import { MapPin, MessageSquare, Shield, HelpCircle, LogOut, Menu, X, Landmark, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import FeedbackModal from './FeedbackModal';
 
 export default function Layout({ user }: { user: User | null }) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = React.useState(false);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -72,7 +74,14 @@ export default function Layout({ user }: { user: User | null }) {
               The specialized AI Neural Engine for travelers in Thailand. Expert local intelligence, instant visual analysis, and real-time safety protocols.
             </p>
           </div>
-          <div className="md:text-right flex flex-col justify-center">
+          <div className="md:text-right flex flex-col justify-center items-end">
+             <button 
+               onClick={() => setIsFeedbackOpen(true)}
+               className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-brand hover:text-panel transition-all mb-4"
+             >
+               <Send className="w-3.5 h-3.5" />
+               Broadcast Feedback
+             </button>
              <p className="text-[10px] uppercase tracking-widest opacity-30 font-bold mb-1 font-mono">Operations Console v3.1.0</p>
              <p className="text-[10px] uppercase tracking-widest opacity-30 font-bold mb-1">Thailand Innovation Hub</p>
              <span className="text-[10px] uppercase tracking-widest opacity-20">© 2026 REvuBOT Neural Network</span>
@@ -102,6 +111,11 @@ export default function Layout({ user }: { user: User | null }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <FeedbackModal 
+        isOpen={isFeedbackOpen} 
+        onClose={() => setIsFeedbackOpen(false)} 
+      />
     </div>
   );
 }

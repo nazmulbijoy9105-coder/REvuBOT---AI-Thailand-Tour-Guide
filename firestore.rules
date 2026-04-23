@@ -78,5 +78,14 @@ service cloud.firestore {
     match /audit_logs/{logId} {
       allow read, create: if isAdmin();
     }
+
+    // Feedback Rules
+    match /feedback/{feedbackId} {
+      function isValidFeedback(data) {
+        return data.userId is string && data.message is string && data.message.size() <= 2000;
+      }
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidFeedback(request.resource.data);
+      allow read: if isAdmin();
+    }
   }
 }
