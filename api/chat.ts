@@ -30,20 +30,20 @@ export default async function handler(req: any, res: any) {
       }
     ];
 
-    const model = ai.getGenerativeModel({ 
+    const response = await ai.models.generateContentStream({
       model: "gemini-3-flash-preview",
-      systemInstruction: `You are REvuBOT, a helpful Thailand tour guide. 
-      Support languages: English, Thai, Hindi, Sinhala. 
-      Always prioritize the user's selected language: ${language}.
-      Be professional, high-intelligence, and safety-conscious.`
+      contents,
+      config: {
+        systemInstruction: `You are REvuBOT, a helpful Thailand tour guide. 
+        Support languages: English, Thai, Hindi, Sinhala. 
+        Always prioritize the user's selected language: ${language}.
+        Be professional, high-intelligence, and safety-conscious.`
+      }
     });
 
-    const result = await model.generateContentStream({ contents });
-
     res.setHeader("Content-Type", "text/plain");
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      if (chunkText) res.write(chunkText);
+    for await (const chunk of response) {
+      if (chunk.text) res.write(chunk.text);
     }
     res.end();
   } catch (error: any) {
