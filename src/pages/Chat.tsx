@@ -517,7 +517,7 @@ export default function Chat() {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 md:p-8 bg-[#FDFCFB] border-t border-slate-100 relative">
+        <div className="p-6 md:p-10 bg-slate-50/50 border-t border-slate-100 relative mt-auto">
           <AnimatePresence>
             {isListening && (
               <motion.div 
@@ -538,7 +538,7 @@ export default function Chat() {
             )}
           </AnimatePresence>
 
-          <div className="absolute inset-0 bg-gradient-to-t from-white to-transparent pointer-events-none -top-12 h-12" />
+          <div className="absolute inset-x-0 -top-12 h-12 bg-gradient-to-t from-slate-50/50 to-transparent pointer-events-none" />
           
           <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto relative z-10">
             <AnimatePresence>
@@ -547,7 +547,7 @@ export default function Chat() {
                   initial={{ opacity: 0, scale: 0.9, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                  className="absolute bottom-full mb-6 left-0 group"
+                  className="absolute bottom-full mb-8 left-0 group"
                 >
                   <div className="relative p-2 bg-white rounded-2xl shadow-2xl border border-slate-100">
                     <img 
@@ -569,7 +569,7 @@ export default function Chat() {
               )}
             </AnimatePresence>
 
-            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center bg-white p-3 rounded-[2.5rem] border-2 border-slate-100 shadow-2xl shadow-slate-200/50 hover:border-brand/30 transition-all duration-500 group focus-within:border-brand focus-within:ring-8 focus-within:ring-brand/5">
+            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center bg-white p-4 rounded-[2.5rem] border-2 border-slate-200 shadow-[0_20px_50px_rgba(15,23,42,0.1)] hover:border-brand/40 transition-all duration-500 group focus-within:border-brand focus-within:ring-[12px] focus-within:ring-brand/5 backdrop-blur-sm">
                <div className="flex items-center gap-2 pl-2">
                  <input 
                    type="file"
@@ -609,11 +609,23 @@ export default function Chat() {
                <button 
                   type="submit"
                   disabled={(!input.trim() && !selectedImage) || isTyping || !auth.currentUser}
-                  className="bg-panel hover:bg-slate-800 text-brand font-black py-4 px-10 rounded-full text-xs uppercase tracking-widest transition-all shadow-xl disabled:opacity-30 disabled:grayscale transform active:scale-95 flex items-center gap-3 group/btn"
+                  className="bg-panel hover:bg-slate-800 text-brand font-black py-4 px-10 rounded-full text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl disabled:opacity-30 disabled:grayscale transform active:scale-95 flex items-center gap-3 group/btn border border-brand/20"
                >
                  <span>{!auth.currentUser ? "LOCKED" : t.transmit}</span>
-                 <Send className={`w-4 h-4 transition-transform ${isTyping ? 'animate-ping' : 'group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1'}`} />
+                 <Send className={`w-3.5 h-3.5 transition-transform ${isTyping ? 'animate-ping text-brand' : 'group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1'}`} />
                </button>
+            </div>
+            
+            <div className="mt-4 flex items-center justify-between px-6 opacity-40">
+               <div className="flex items-center gap-4">
+                  <div className="flex gap-1">
+                     <div className="w-1 h-1 bg-brand rounded-full animate-pulse" />
+                     <div className="w-1 h-1 bg-brand rounded-full animate-pulse [animation-delay:0.2s]" />
+                     <div className="w-1 h-1 bg-brand rounded-full animate-pulse [animation-delay:0.4s]" />
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-[0.3em]">Neural Link Stable</span>
+               </div>
+               <span className="text-[9px] font-mono tracking-tighter">SECURE CHANNEL v3.11</span>
             </div>
           </form>
         </div>
