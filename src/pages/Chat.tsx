@@ -107,6 +107,7 @@ export default function Chat() {
   const [conversations, setConversations] = React.useState<any[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
   const [language, setLanguage] = React.useState('en');
+  const [engine, setEngine] = React.useState<'gemini' | 'grok'>('gemini');
   const [isTyping, setIsTyping] = React.useState(false);
   const [isListening, setIsListening] = React.useState(false);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
@@ -286,7 +287,7 @@ export default function Chat() {
         parts: [{ text: m.content }]
       }));
       
-      const stream = await generateTravelAdvice(userMsg, history, language, imageData, mimeType);
+      const stream = await generateTravelAdvice(userMsg, history, language, imageData, mimeType, engine);
       let fullContent = '';
       
       const aiMsgRef = await addDoc(collection(db, `conversations/${convId}/messages`), {
@@ -373,6 +374,24 @@ export default function Chat() {
         </div>
 
         <div className="p-4 border-t border-slate-800 bg-panel-muted/30">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">Neural Core Selection</p>
+          <div className="grid grid-cols-2 gap-2 mb-6 px-1">
+             <button 
+                onClick={() => setEngine('gemini')}
+                className={`flex flex-col items-center gap-1 py-3 rounded-xl transition-all border ${engine === 'gemini' ? 'bg-brand/10 border-brand text-white shadow-lg' : 'bg-slate-800/50 border-slate-700 text-slate-500 hover:border-slate-500'}`}
+             >
+                <span className="text-[10px] font-black uppercase tracking-widest">Gemini</span>
+                <div className={`w-1.5 h-1.5 rounded-full ${engine === 'gemini' ? 'bg-brand' : 'bg-slate-600'}`}></div>
+             </button>
+             <button 
+                onClick={() => setEngine('grok')}
+                className={`flex flex-col items-center gap-1 py-3 rounded-xl transition-all border ${engine === 'grok' ? 'bg-white/10 border-white text-white shadow-lg' : 'bg-slate-800/50 border-slate-700 text-slate-500 hover:border-slate-500'}`}
+             >
+                <span className="text-[10px] font-black uppercase tracking-widest">Grok</span>
+                <div className={`w-1.5 h-1.5 rounded-full ${engine === 'grok' ? 'bg-white' : 'bg-slate-600'}`}></div>
+             </button>
+          </div>
+
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 ml-1">{t.interfaceLang}</p>
           <div className="grid grid-cols-4 gap-1.5 px-1">
             {['EN', 'TH', 'HI', 'SI'].map(lang => (
@@ -395,7 +414,7 @@ export default function Chat() {
           <div className="flex items-center gap-4">
              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-[10px] font-black tracking-widest border border-green-100 uppercase">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                {t.neuralEngine}
+                {engine === 'gemini' ? 'Gemini 3.0 Pro' : 'Grok Beta xAI'}
              </div>
              <span className="text-slate-200">|</span>
              <h2 className="text-xs font-black uppercase tracking-widest text-slate-500">Operation: Tourist Support</h2>

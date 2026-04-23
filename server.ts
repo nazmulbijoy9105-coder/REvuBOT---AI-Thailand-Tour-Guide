@@ -41,12 +41,15 @@ async function startServer() {
     const geminiKey = rawGeminiKey && !rawGeminiKey.includes("YOUR_API_KEY") ? rawGeminiKey : null;
     const grokKey = rawGrokKey && !rawGrokKey.includes("YOUR_API_KEY") ? rawGrokKey : null;
 
-    logger.info(`Chat Request Received. GeminiKey: ${geminiKey ? "VALIDATED" : "MISSING/INVALID"}, GrokKey: ${grokKey ? "VALIDATED" : "MISSING/INVALID"}`);
+    const { message, history, language, imageData, mimeType, engine = "gemini" } = req.body;
+
+    logger.info(`Chat Request Received. Engine: ${engine}, GeminiKey: ${geminiKey ? "VALIDATED" : "MISSING"}, GrokKey: ${grokKey ? "VALIDATED" : "MISSING"}`);
 
     try {
-      const { message, history, language, imageData, mimeType } = req.body;
-      
-      if (geminiKey) {
+      // 1. Gemini Implementation (Default)
+      if (engine === "gemini" || (!grokKey && geminiKey)) {
+        if (!geminiKey) throw new Error("GEMINI_API_KEY not configured.");
+
         logger.info("Initializing Gemini Neural Engine...");
         const ai = new GoogleGenAI({ apiKey: geminiKey });
         
@@ -68,10 +71,13 @@ async function startServer() {
           model: "gemini-3-flash-preview",
           contents,
           config: {
-            systemInstruction: `You are REvuBOT, a helpful Thailand tour guide. 
-            Support languages: English, Thai, Hindi, Sinhala. 
-            Always prioritize the user's selected language: ${language}.
-            Be professional, high-intelligence, and safety-conscious.`
+            systemInstruction: `You are REvuBOT, the elite Thailand AI Tour Guide.
+            Core Directives:
+            1. Language: Prioritize ${language}. Support English, Thai, Hindi, Sinhala.
+            2. Expertise: Hotels, transport (BTS/MRT), Thai culture, street food, and government compliance.
+            3. Safety: Always include safety context regarding weather (monsoons) or local regulations if relevant.
+            4. Tone: High-intelligence, elite, professional, yet welcoming.
+            5. Formatting: Use clean Markdown. Avoid walls of text. Use lists and bolding.`
           }
         });
         
@@ -85,8 +91,12 @@ async function startServer() {
         return;
       }
       
-      if (grokKey) {
-        // Implementation for Grok if requested
+      // 2. Grok Implementation
+      if (engine === "grok" || (grokKey && !geminiKey)) {
+        if (!grokKey) throw new Error("GROK_API_KEY not configured.");
+
+        logger.info("Initializing Grok Neural Link...");
+        
         const grokRes = await fetch("https://api.x.ai/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -95,22 +105,56 @@ async function startServer() {
           },
           body: JSON.stringify({
              messages: [
-               { role: "system", content: `You are REvuBOT, a helpful Thailand tour guide. Support languages: English, Thai, Hindi, Sinhala. Current user language preference: ${language}` },
-               ...history,
+               { 
+                 role: "system", 
+                 content: `You are REvuBOT, the elite Thailand AI Tour Guide. Current user language preference: ${language}.
+                 Expertise: Hotels, transport, Thai culture, and safety.
+                 Tone: Professional, high-intelligence. Format with Markdown.` 
+               },
+               ...history.map((h: any) => ({
+                 role: h.role === 'model' ? 'assistant' : 'user',
+                 content: h.parts[0].text
+               })),
                { role: "user", content: message }
              ],
-             model: "grok-beta" // or specific version
+             model: "grok-beta",
+             stream: true
           })
         });
-        const data = await grokRes.json();
-        return res.json({ reply: data.choices[0].message.content });
+
+        if (!grokRes.ok) {
+          const err = await grokRes.json();
+          throw new Error(`Grok API Error: ${JSON.stringify(err)}`);
+        }
+
+        res.setHeader('Content-Type', 'text/plain');
+        const reader = grokRes.body?.getReader();
+        if (!reader) throw new Error("Grok Stream Reader failed.");
+
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value);
+          const lines = chunk.split("\n");
+          
+          for (const line of lines) {
+            if (line.startsWith("data: ") && line !== "data: [DONE]") {
+              try {
+                const json = JSON.parse(line.substring(6));
+                const content = json.choices[0].delta.content;
+                if (content) res.write(content);
+              } catch (e) {
+                // Ignore partial JSON
+              }
+            }
+          }
+        }
+        res.end();
+        return;
       }
 
-      // If no keys found
-      logger.warn("No valid API keys found in environment.");
-      res.status(401).json({ 
-        error: "Neural Engine not configured. Please supply GEMINI_API_KEY.",
-      });
+      throw new Error("No neural engine available.");
 
     } catch (error: any) {
       logger.error("Chat Engine Critical Error", { message: error.message, stack: error.stack });

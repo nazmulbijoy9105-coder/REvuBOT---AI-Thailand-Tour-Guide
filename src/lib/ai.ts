@@ -2,7 +2,14 @@
  * REvuBOT AI Client
  * Proxied neural link to the Express Backend API
  */
-export async function* generateTravelAdvice(prompt: string, history: any[] = [], language: string = 'en', imageData?: string, mimeType: string = "image/jpeg") {
+export async function* generateTravelAdvice(
+  prompt: string, 
+  history: any[] = [], 
+  language: string = 'en', 
+  imageData?: string, 
+  mimeType: string = "image/jpeg",
+  engine: string = "gemini"
+) {
   try {
     const response = await fetch('/api/chat', {
       method: 'POST',
@@ -14,7 +21,8 @@ export async function* generateTravelAdvice(prompt: string, history: any[] = [],
         history,
         language,
         imageData,
-        mimeType
+        mimeType,
+        engine
       })
     });
 
