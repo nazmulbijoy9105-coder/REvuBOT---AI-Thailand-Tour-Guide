@@ -16,7 +16,7 @@ import {
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { generateTravelAdvice } from '../lib/ai';
-import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X, Mic, MicOff, Search, Volume2, VolumeX } from 'lucide-react';
+import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X, Mic, MicOff, Search, Volume2, VolumeX, Banknote, ArrowRightLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 
@@ -27,10 +27,10 @@ const LOCALIZATION: Record<string, any> = {
     interfaceLang: "Interface Language",
     neuralEngine: "Neural Engine Online",
     opsBase: "Operations Base",
-    placeholder: "Ask about hotels, transport, or Thai culture...",
+    placeholder: "Ask anything or type /calc to convert currency...",
     transmit: "Transmit",
     initContact: "Initialize Contact",
-    welcomeDesc: "Ready for Thailand deployment. Signal your requirements regarding transport, culture, or government compliance.",
+    welcomeDesc: "Ready for Thailand deployment. Signal your requirements regarding transport, culture, or government compliance. Type /calc to trigger FX Intel.",
     contextualIntel: "Contextual Intelligence",
     safetyDirective: "Safety Directive",
     safetyDesc: "Monsoon season alert: Heavy precipitation expected in Central Thailand.",
@@ -118,12 +118,35 @@ export default function Chat() {
   const [userScrolledUp, setUserScrolledUp] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [showCurrency, setShowCurrency] = React.useState(false);
-  const [bdtAmount, setBdtAmount] = React.useState('1000');
+  const [conversion, setConversion] = React.useState({
+    amount: '1000',
+    from: 'BDT',
+    to: 'THB'
+  });
+  
+  const EXCHANGE_RATES: Record<string, number> = {
+    'THB': 1,
+    'BDT': 0.30,
+    'USD': 36.50,
+    'INR': 0.44,
+    'LKR': 0.12,
+    'EUR': 39.20
+  };
+
+  const calculateConversion = () => {
+    const fromRate = EXCHANGE_RATES[conversion.from] || 1;
+    const toRate = EXCHANGE_RATES[conversion.to] || 1;
+    const amountNum = parseFloat(conversion.amount) || 0;
+    
+    // Convert to THB first (base), then to target
+    const inThb = amountNum * fromRate;
+    const result = inThb / toRate;
+    
+    return result.toFixed(2);
+  };
+
   const [speakingMessageId, setSpeakingMessageId] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  
-  const thbRate = 0.32; // Mock BDT to THB rate
-  const converted = (parseFloat(bdtAmount) * thbRate).toFixed(2);
   const recognitionRef = React.useRef<any>(null);
   
   React.useEffect(() => {
@@ -324,6 +347,21 @@ export default function Chat() {
 
     let convId = id;
     const userMsg = input.trim() || (selectedImage ? "[Awaiting Visual Analysis]" : "");
+    
+    // Command Intercept: Currency
+    if (userMsg.toLowerCase().startsWith('/calc') || userMsg.toLowerCase().startsWith('/rate')) {
+      const parts = userMsg.split(' ');
+      if (parts.length >= 2) {
+        const amount = parts[1];
+        if (!isNaN(parseFloat(amount))) {
+          setConversion(prev => ({ ...prev, amount }));
+        }
+      }
+      setShowCurrency(true);
+      setInput('');
+      return;
+    }
+
     const imageData = selectedImage ? selectedImage.split(',')[1] : undefined;
     const mimeType = selectedImage ? selectedImage.match(/data:([^;]+);/)?.[1] : undefined;
     
@@ -331,6 +369,7 @@ export default function Chat() {
     setInput('');
     clearImage();
     setUserScrolledUp(false); // Reset scroll state to force auto-scroll on send
+    setTimeout(() => scrollToBottom(true), 10); // Force immediate snap to bottom
 
     if (!convId) {
       const convDoc = await addDoc(collection(db, 'conversations'), {
@@ -512,20 +551,92 @@ export default function Chat() {
              <span className="text-slate-200">|</span>
              <h2 className="text-xs font-black uppercase tracking-widest text-slate-500">Operation: Tourist Support</h2>
           </div>
-          <button 
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-slate-50 rounded-xl transition-colors text-slate-400"
-          >
-            <History className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setShowCurrency(!showCurrency)}
+              className={`p-2 rounded-xl transition-all ${showCurrency ? 'bg-brand text-panel shadow-lg' : 'hover:bg-slate-50 text-slate-400'}`}
+              title="Currency Intelligence"
+            >
+              <Banknote className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 hover:bg-slate-50 rounded-xl transition-colors text-slate-400"
+            >
+              <History className="w-5 h-5" />
+            </button>
+          </div>
         </header>
 
         {/* Messages */}
         <div 
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-[#FDFCFB] selection:bg-brand/30"
+          className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-[#FDFCFB] selection:bg-brand/30 relative"
         >
+          <AnimatePresence>
+            {showCurrency && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                className="absolute top-4 right-4 z-50 w-72 bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 p-6 backdrop-blur-xl"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-brand">FX Intelligence</h3>
+                  <button onClick={() => setShowCurrency(false)} className="text-slate-300 hover:text-slate-600 transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                    <label className="text-[9px] font-black uppercase text-slate-400 mb-2 block">Source Value</label>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="number"
+                        value={conversion.amount}
+                        onChange={(e) => setConversion({...conversion, amount: e.target.value})}
+                        className="w-full bg-transparent font-black text-xl outline-none text-panel"
+                      />
+                      <select 
+                        value={conversion.from}
+                        onChange={(e) => setConversion({...conversion, from: e.target.value})}
+                        className="bg-panel text-white rounded-lg px-2 py-1 text-[10px] font-black outline-none"
+                      >
+                        {Object.keys(EXCHANGE_RATES).map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center -my-2 relative z-10">
+                    <button 
+                      onClick={() => setConversion({ ...conversion, from: conversion.to, to: conversion.from })}
+                      className="w-8 h-8 bg-brand rounded-full flex items-center justify-center text-panel shadow-lg hover:rotate-180 transition-all duration-500"
+                    >
+                      <ArrowRightLeft className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="bg-brand/5 rounded-2xl p-4 border border-brand/10">
+                    <label className="text-[9px] font-black uppercase text-brand mb-2 block">Target Result</label>
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-2xl text-brand">{calculateConversion()}</span>
+                      <select 
+                        value={conversion.to}
+                        onChange={(e) => setConversion({...conversion, to: e.target.value})}
+                        className="bg-brand text-panel rounded-lg px-2 py-1 text-[10px] font-black outline-none"
+                      >
+                        {Object.keys(EXCHANGE_RATES).map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <p className="text-[9px] text-slate-400 font-bold text-center italic">Institutional Live Spreads. Powered by RB Neural.</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           {messages.length === 0 && !id && (
             <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto space-y-8 py-12">
                 <motion.div 
@@ -757,24 +868,30 @@ export default function Chat() {
                    exit={{ height: 0, opacity: 0 }}
                    className="mb-4 overflow-hidden"
                  >
-                    <div className="p-4 bg-panel text-white rounded-2xl shadow-lg border border-white/5 space-y-4">
-                       <div>
-                          <label className="text-[9px] font-black uppercase tracking-widest text-brand mb-1 block">BDT Input</label>
-                          <input 
-                            type="number"
-                            value={bdtAmount}
-                            onChange={(e) => setBdtAmount(e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:border-brand"
-                          />
-                       </div>
-                       <div className="flex items-center gap-3">
-                          <div className="flex-1">
-                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Result (THB)</p>
-                             <p className="text-xl font-black text-brand">฿ {converted}</p>
-                          </div>
-                          <div className="text-[10px] text-slate-500 font-bold bg-slate-800/50 px-2 py-1 rounded">Rate: 0.32</div>
-                       </div>
-                    </div>
+                   <div className="p-4 bg-panel text-white rounded-2xl shadow-lg border border-white/5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-brand">Operations FX</label>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[8px] font-bold px-1.5 py-0.5 bg-slate-800 rounded">{conversion.from}</span>
+                          <ArrowRightLeft className="w-2 h-2 text-slate-500" />
+                          <span className="text-[8px] font-bold px-1.5 py-0.5 bg-brand text-panel rounded">{conversion.to}</span>
+                        </div>
+                      </div>
+                      <div>
+                         <input 
+                           type="number"
+                           value={conversion.amount}
+                           onChange={(e) => setConversion({...conversion, amount: e.target.value})}
+                           className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:border-brand"
+                         />
+                      </div>
+                      <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                         <div className="flex-1">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Result</p>
+                            <p className="text-xl font-black text-brand">{calculateConversion()} {conversion.to}</p>
+                         </div>
+                      </div>
+                   </div>
                  </motion.div>
                )}
              </AnimatePresence>
