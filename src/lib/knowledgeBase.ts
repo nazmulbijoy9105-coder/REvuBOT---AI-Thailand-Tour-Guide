@@ -121,9 +121,29 @@ export const THAILAND_KNOWLEDGE_BASE: KnowledgeEntry[] = [
     answer: "- **Safe Street Food:** Look for high-turnover stalls where locals are queuing.\n- **Water:** NEVER drink tap water. Use ice only in established restaurants.\n- **Halal:** Easily found in Bangkok's Soi Arab and Southern Thailand provinces (Krabi, Phuket).\n- **Spicy:** 'Phet Nid Noi' means 'A little bit spicy' (which is still spicy for most tourists)."
   },
   {
-    category: "Travel Segments (Neural Planning)",
-    keywords: ["solo", "couple", "family", "group", "corporate", "business"],
-    answer: "- **SOLO:** Focus on social hostels and group day-tours for safety.\n- **COUPLE:** Private villas in Koh Samui or sunset cruises in Bangkok.\n- **FAMILY:** Focus on Phuket resorts with Kids Clubs and Grab Family (Car seats).\n- **CORPORATE/BUSINESS:** Specialized team-building in Hua Hin or luxury co-working in Nimman."
+    category: "Solo Travel Template",
+    keywords: ["solo", "single", "backpacker", "alone"],
+    answer: "**Segment Focus:** Social discovery, safety, and budget efficiency.\n- **Recommended Route:** Bangkok -> Chiang Mai -> Koh Tao.\n- **Lodging:** Upscale social hostels (e.g., Mad Monkey, Lub d) - 500-900 THB/night.\n- **Transport:** RTC City Bus in Chiang Mai, Sleeper Trains (2nd Class) - 900 THB.\n- **AI Prompt:** 'Create a 10-day solo safety-first itinerary starting in Bangkok with 3 budget social hostel recommendations.'\n- **Safety:** Registered 'Grab' motorbike taxis for fast transport; avoid walking alone in unlit Sois (alleys)."
+  },
+  {
+    category: "Couple & Honeymoon Template",
+    keywords: ["couple", "honeymoon", "romantic", "anniversary", "date"],
+    answer: "**Segment Focus:** Privacy, aesthetics, and curated luxury.\n- **Recommended Route:** Bangkok -> Koh Samui -> Krabi.\n- **Lodging:** Private Pool Villas (e.g., Sala Samui, Rayavadee) - 8,000-25,000 THB/night.\n- **Dining:** Sunset dinner cruises on the Chao Phraya; clifftop dining in Railay.\n- **AI Prompt:** 'Draft a 7-day romantic itinerary for Koh Samui featuring 3 sunset dinner spots and a private yacht charter.'\n- **Details:** Look for 'Adults Only' resorts for maximum tranquility."
+  },
+  {
+    category: "Family & Group Template",
+    keywords: ["family", "group", "kids", "children", "multi-gen", "minivan"],
+    answer: "**Segment Focus:** Logistics, kid-friendly activities, and shared space.\n- **Recommended Route:** Phuket -> Khao Sok -> Hua Hin.\n- **Lodging:** 3-bedroom serviced apartments or multi-room resorts - 4,000-10,000 THB/night.\n- **Activities:** Water parks (Andamanda Phuket), Ethical Elephant Nature Park.\n- **AI Prompt:** 'Plan a 5-day Phuket family trip for 6 people including a private minivan rental and 3 kid-friendly beaches.'\n- **Transport:** Private Van (10-seater) - 2,500-3,500 THB/day including driver."
+  },
+  {
+    category: "Corporate & Team Building Template",
+    keywords: ["corporate", "team building", "retreat", "company", "staff", "offsite"],
+    answer: "**Segment Focus:** Collaboration, high-capacity venues, and logistics.\n- **Recommended Route:** Bangkok (Riverside) or Pattaya (Luxury Resorts).\n- **Venues:** Avani+ Riverside, Royal Cliff Pattaya.\n- **Work:** High-speed boardroom rentals, Tichuca rooftop for networking.\n- **AI Prompt:** 'Create a 3-day corporate offsite plan in Bangkok for 20 executives with meeting room logistics and 2 team-building dinners.'\n- **Data:** Average conference package: 1,800 - 3,500 THB per person/day."
+  },
+  {
+    category: "Business & Efficiency Template",
+    keywords: ["business trip", "meeting", "conference", "work trip", "executive", "airport lounge"],
+    answer: "**Segment Focus:** Punctuality, connectivity, and premium comfort.\n- **Recommended Route:** Sukhumvit/Silom (Bangkok Central Business District).\n- **Lodging:** Standard Chartered/Business Hotels (JW Marriott, Okura) - 5,000-9,000 THB/night.\n- **Transport:** BTS Rabbit Card for traffic bypass; Airport Limousine 서비스.\n- **AI Prompt:** 'Design a 2-day business efficient schedule in Silom with 3 high-end networking cafes and airport fast-track info.'\n- **Perk:** Utilize Suvarnabhumi Miracle Lounges (1,200 THB/entry) for work between flights."
   }
 ];
 
