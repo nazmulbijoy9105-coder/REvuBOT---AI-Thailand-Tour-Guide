@@ -471,8 +471,8 @@ export default function Chat() {
       let errorMessage = "⚠️ **SIGNAL INTERRUPT**: Neural Engine offline.";
       
       const errorStr = err.message || "";
-      if (errorStr.includes("API KEY")) {
-        errorMessage = "⚠️ **ACCESS DENIED**: Your API Key is invalid or missing. Please check your **Settings** menu and ensure the Gemini API key is correctly configured.";
+      if (errorStr.includes("API KEY") || errorStr.includes("API_KEY_INVALID")) {
+        errorMessage = "⚠️ **ACCESS DENIED**: Your API Key is invalid. Please copy the new key you provided, open the **Settings** menu at the top right of AI Studio, and paste it into the **GEMINI_API_KEY** field.";
       } else if (errorStr.includes("Quota") || errorStr.includes("Rate limit")) {
         errorMessage = "⚠️ **BANDS SATURATED**: Neural quota exceeded. Please wait a few minutes for the signal to clear or try switching to a different engine.";
       } else if (errorStr.includes("Safety")) {

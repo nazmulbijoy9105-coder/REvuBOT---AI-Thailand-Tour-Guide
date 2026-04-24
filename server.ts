@@ -68,7 +68,7 @@ async function startServer() {
         ];
 
         const streamingResult = await ai.models.generateContentStream({ 
-          model: "gemini-3-flash-preview",
+          model: "gemini-1.5-flash",
           contents,
           config: {
             systemInstruction: `You are REvuBOT, the elite Thailand AI Tour Guide and Autonomous Travel Agent.
@@ -182,8 +182,8 @@ async function startServer() {
       let clientError = "Internal neural processing error";
       let statusCode = 500;
 
-      if (error.message?.includes("API key not valid")) {
-        clientError = "INVALID API KEY: The Gemini API Key provided in settings is rejected by Google. Please check your credentials.";
+      if (error.message?.includes("API key not valid") || error.message?.includes("API_KEY_INVALID")) {
+        clientError = "INVALID API KEY: The Gemini API Key provided is rejected by Google. Please open the SETTINGS menu in AI Studio and ensure your GEMINI_API_KEY is correct. (Reason: API_KEY_INVALID)";
         statusCode = 401;
       } else if (error.message?.includes("quota") || error.message?.includes("limit")) {
         clientError = "BANDS SATURATED: Neural quota exceeded. (Google API Quota reached)";
