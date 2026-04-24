@@ -1,0 +1,128 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information and preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "preferredLanguage": { "type": "string", "enum": ["en", "th", "hi", "si"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Conversation": {
+      "title": "Chat Conversation",
+      "description": "A booking or support conversation session.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "lastMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title"]
+    },
+    "Message": {
+      "title": "Chat Message",
+      "description": "A single message in a conversation.",
+      "type": "object",
+      "properties": {
+        "sender": { "type": "string", "enum": ["user", "ai"] },
+        "content": { "type": "string" },
+        "language": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sender", "content", "timestamp"]
+    },
+    "FAQ": {
+      "title": "Standard FAQ",
+      "description": "Predefined tourist information.",
+      "type": "object",
+      "properties": {
+        "question": { "type": "string" },
+        "answer": { "type": "string" },
+        "category": { "type": "string", "enum": ["visa", "transport", "culture", "emergency"] },
+        "language": { "type": "string" }
+      },
+      "required": ["question", "answer", "category", "language"]
+    },
+    "Itinerary": {
+      "title": "Travel Itinerary",
+      "description": "Saved travel mission plans.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "meta": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "content"]
+    },
+    "AuditLog": {
+      "title": "System Audit Log",
+      "description": "Tracking significant admin actions.",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string" },
+        "performedBy": { "type": "string" },
+        "targetId": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["action", "performedBy", "timestamp"]
+    },
+    "Feedback": {
+      "title": "User Feedback",
+      "description": "Feedback submitted by users.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "message": { "type": "string" },
+        "category": { "type": "string", "enum": ["bug", "suggestion", "other"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "message", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/conversations/{convId}": {
+      "schema": "Conversation",
+      "description": "Top level conversation metadata"
+    },
+    "/conversations/{convId}/messages/{msgId}": {
+      "schema": "Message",
+      "description": "Individual messages within a conversation"
+    },
+    "/faqs/{faqId}": {
+      "schema": "FAQ",
+      "description": "Tourist FAQs"
+    },
+    "/itineraries/{itineraryId}": {
+      "schema": "Itinerary",
+      "description": "User saved itineraries"
+    },
+    "/admins/{adminId}": {
+      "schema": "object",
+      "description": "Admin white-list"
+    },
+    "/audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "System audit tracking"
+    },
+    "/feedback/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "User feedback submissions"
+    }
+  }
+}
