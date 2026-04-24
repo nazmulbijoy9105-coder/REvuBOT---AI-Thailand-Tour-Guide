@@ -156,6 +156,7 @@ export default function Chat() {
   React.useEffect(() => {
     return () => {
       window.speechSynthesis.cancel();
+      if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
     };
   }, []);
 
@@ -471,21 +472,24 @@ export default function Chat() {
       let errorMessage = "⚠️ **SIGNAL INTERRUPT**: Neural Engine offline.";
       
       const errorStr = err.message || "";
-      if (errorStr.includes("API KEY") || errorStr.includes("API_KEY_INVALID")) {
-        errorMessage = "⚠️ **ACCESS DENIED**: Your API Key is invalid. Please copy the new key you provided, open the **Settings** menu at the top right of AI Studio, and paste it into the **GEMINI_API_KEY** field.";
-      } else if (errorStr.includes("Quota") || errorStr.includes("Rate limit")) {
-        errorMessage = "⚠️ **BANDS SATURATED**: Neural quota exceeded. Please wait a few minutes for the signal to clear or try switching to a different engine.";
-      } else if (errorStr.includes("Safety")) {
-        errorMessage = "⚠️ **PROTOCOL VIOLATION**: The request was blocked by safety filters. Please refine your query parameters.";
+      
+      if (err.retryable || errorStr.includes("high demand") || errorStr.includes("busy")) {
+        errorMessage = "⚠️ **BANDS SATURATED**: REvuBOT is experiencing high traffic. Wait a few seconds and retry.";
+      } else if (errorStr.includes("API KEY") || errorStr.includes("INVALID API KEY")) {
+        errorMessage = "⚠️ **ACCESS DENIED**: API Key rejected. Check Vercel environment variables.";
+      } else if (errorStr.includes("VISUAL OVERFLOW") || errorStr.includes("413")) {
+        errorMessage = "⚠️ **VISUAL OVERFLOW**: Image too large for neural processing. Send a smaller image.";
       } else if (errorStr.includes("Failed to fetch")) {
-        errorMessage = "⚠️ **LINK SEVERED**: Network connection lost. Please check your upstream link.";
+        errorMessage = "⚠️ **LINK SEVERED**: Network connection lost.";
       }
 
-      await addDoc(collection(db, `conversations/${convId}/messages`), {
-        sender: 'ai',
-        content: errorMessage,
-        timestamp: serverTimestamp()
-      });
+      if (convId) {
+        await addDoc(collection(db, `conversations/${convId}/messages`), {
+          sender: 'ai',
+          content: errorMessage,
+          timestamp: serverTimestamp()
+        });
+      }
     } finally {
       setIsTyping(false);
       setStreamingMessage(null);
