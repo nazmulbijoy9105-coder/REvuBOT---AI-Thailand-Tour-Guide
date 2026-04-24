@@ -56,19 +56,34 @@ export const THAILAND_KNOWLEDGE_BASE: KnowledgeEntry[] = [
     answer: "- **Temples (Wat):** Dress respectfully. Shoulders and knees must be covered. No shorts or tank tops.\n- **The King:** Deep respect for the Monarchy is mandatory. Do not speak ill of the Royal Family.\n- **Head & Feet:** The head is sacred (don't touch people's heads); feet are lowly (don't point them at people or Buddha statues).\n- **Wai:** The traditional greeting (palms together like a prayer)."
   },
   {
-    category: "Attractions",
-    keywords: ["attraction", "visit", "see", "place", "grand palace", "wat arun", "wat phra kaew", "elephant", "sanctuary", "river", "market"],
-    answer: "- **Bangkok:** Grand Palace & Wat Phra Kaew (Emerald Buddha), Wat Arun (Temple of Dawn), Wat Pho (Reclining Buddha).\n- **Chiang Mai:** Doi Suthep, Night Bazaar, Ethical Elephant Sanctuaries (Check for 'No Riding' policy).\n- **Phuket:** Big Buddha, Old Town, Phi Phi Island (via speedboat).\n- **Ayutthaya:** UNESCO World Heritage site, ancient city ruins (80km from Bangkok)."
+    category: "Attractions & Landmarks",
+    keywords: ["attraction", "visit", "see", "place", "grand palace", "wat arun", "wat phra kaew", "wat pho", "emerald buddha", "wat saket", "golden mount"],
+    answer: "- **Bangkok:** Grand Palace (Must see), Wat Arun (Stunning at sunset), Wat Pho (Huge reclining Buddha), Wat Saket (Panoramic city views).\n- **Chiang Mai:** Doi Suthep (Mountain temple), Wat Chedi Luang, Sunday Night Market.\n- **Ayutthaya:** Ancient capital ruins, Buddha head in tree roots (Wat Mahathat).\n- **Kanchanaburi:** Death Railway, bridge over River Kwai, Erawan Waterfalls (7 tiers)."
   },
   {
-    category: "Weather & Seasons",
-    keywords: ["weather", "season", "rain", "hot", "cool", "when to go", "best time", "month"],
-    answer: "- **Cool Season (Nov - Feb):** Best time to visit. Dry and pleasant (25-30°C).\n- **Hot Season (Mar - May):** Very hot (35-40°C), great for Songkran (Water Festival) in April.\n- **Rainy Season (Jun - Oct):** Short heavy showers, usually in the afternoon. Hotel prices are 30-50% cheaper."
+    category: "Islands & Beaches",
+    keywords: ["island", "beach", "phuket", "krabi", "phi phi", "samui", "koh tao", "koh phangan", "koh lipe", "diving", "snorkeling"],
+    answer: "- **Phi Phi Islands:** Famous from 'The Beach', Maya Bay, turquoise waters.\n- **Phuket:** Largest island, Patong (Nightlife), Kata Noi (Quiet), Old Town (History).\n- **Koh Samui:** Upscale resorts, coconut groves, Ang Thong Marine Park.\n- **Koh Tao:** World-renowned for affordable scuba diving certification.\n- **Koh Phangan:** Full Moon Party (Haad Rin Beach), but also secret calm bays in the north.\n- **Koh Lipe:** 'The Maldives of Thailand', crystal clear water, tiny walkable island."
   },
   {
-    category: "Nightlife & Sky Bars",
-    keywords: ["nightlife", "bar", "club", "party", "drink", "beer", "khao san", "sky bar", "rooftop"],
-    answer: "- **Bangkok Sky Bars:** Lebua (Sky Bar), Tichuca (Octopus-like lights), Octave.\n- **Party Zones:** Khao San Road (Backpackers), Sukhumvit Soi 11 (High-end), RCA (Clubs).\n- **Islands:** Full Moon Party (Koh Phangan - check dates), Patong Bangla Road (Phuket).\n- **Rules:** Bars close at 2:00 AM. 20+ age limit is strictly enforced."
+    category: "Festivals & Events",
+    keywords: ["festival", "event", "songkran", "loy krathong", "party", "celebration", "new year", "lantern"],
+    answer: "- **Songkran (April 13-15):** Thai New Year. Giant water fight nationwide. Respect monks/elders but expect to get soaked!\n- **Loy Krathong (November):** Floating baskets with candles on rivers to thank the water goddess. Most beautiful in Chiang Mai.\n- **Yi Peng (November):** Lantern festival in Chiang Mai. Thousands of lanterns released into the sky (often same day as Loy Krathong).\n- **Chinese New Year (Jan/Feb):** Huge celebrations in Bangkok's Chinatown (Yaowarat)."
+  },
+  {
+    category: "Shopping & Malls",
+    keywords: ["shopping", "market", "mall", "siam", "mbk", "chatuchak", "night market", "iconsiam", "emquatier"],
+    answer: "- **Iconsiam:** Riverside luxury mall, features 'SookSiam' (indoor floating market/street food section).\n- **Siam Square/Paragon:** The heart of Bangkok shopping. High fashion to local designers.\n- **Chatuchak (Weekend Market):** 15,000+ stalls. Best for cheap clothes, home decor, and pets.\n- **MBK Center:** Go-to for electronics, phone repairs, and discount souvenirs."
+  },
+  {
+    category: "Elephant Ethics",
+    keywords: ["elephant", "sanctuary", "riding", "ethical", "save", "nature"],
+    answer: "Thailand has moved towards 'Ethical Tourism'. \n- **Avoid:** Any place offering elephant riding, painting, or circus tricks.\n- **Choose:** 'Sanctuaries' where you observe or feed them. Elephant Nature Park (Chiang Mai) and Phuket Elephant Sanctuary are top-rated pioneers."
+  },
+  {
+    category: "Etiquette & Culture",
+    keywords: ["culture", "respect", "temple", "clothing", "dress", "monks", "head", "feet", "monarchy"],
+    answer: "- **Temples:** No shoes inside. Cover shoulders/knees. Don't sit with feet pointing at Buddha.\n- **Monks:** Women should not touch monks or hand things directly. Place item on a cloth or have a man do it.\n- **Head & Feet:** Never touch a Thai person's head (it's the most sacred part). Don't use your feet to point or move objects.\n- **Lèse-majesté:** It is a crime to insult or deface images of the Royal Family (including money)."
   },
   {
     category: "Medical & Insurance",

@@ -2,10 +2,11 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import cors from "cors";
+import fs from "fs";
 import "dotenv/config";
 import { GoogleGenAI } from "@google/genai";
 
-import { findLocalAnswer } from "./src/lib/knowledgeBase";
+import { findLocalAnswer } from "./src/lib/knowledgeBase.ts";
 
 // Standardized DevOps Logger
 const logger = {
@@ -51,6 +52,15 @@ async function startServer() {
     }
 
     try {
+      // Pre-seed local insights if available, even when AI is processing
+      if (localAnswer && (geminiKey || grokKey)) {
+        res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.write(`> 🧠 **Preliminary Local Insights Found**\n${localAnswer.split('\n').filter(l => l.trim() !== '').slice(0, 3).join('\n> ')}\n\n---\n\n`);
+      }
+
       // 1. Gemini Implementation (Default)
       if (engine === "gemini" || (!grokKey && geminiKey)) {
         if (!geminiKey) throw new Error("GEMINI_API_KEY not configured.");
@@ -95,11 +105,13 @@ async function startServer() {
           }
         });
         
-        res.setHeader('Content-Type', 'text/plain');
-        res.setHeader('X-Accel-Buffering', 'no'); // Disable Nginx buffering
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        
+        if (!res.headersSent) {
+          res.setHeader('Content-Type', 'text/plain');
+          res.setHeader('X-Accel-Buffering', 'no'); // Disable Nginx buffering
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Connection', 'keep-alive');
+        }
+
         for await (const chunk of streamingResult) {
           const chunkText = chunk.text;
           if (chunkText) {
@@ -146,10 +158,12 @@ async function startServer() {
           throw new Error(`Grok API Error: ${JSON.stringify(err)}`);
         }
 
-        res.setHeader('Content-Type', 'text/plain');
-        res.setHeader('X-Accel-Buffering', 'no');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
+        if (!res.headersSent) {
+          res.setHeader('Content-Type', 'text/plain');
+          res.setHeader('X-Accel-Buffering', 'no');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Connection', 'keep-alive');
+        }
         
         const reader = grokRes.body?.getReader();
         if (!reader) throw new Error("Grok Stream Reader failed.");
@@ -195,7 +209,8 @@ async function startServer() {
         const offlineAnswer = findLocalAnswer(message);
         if (offlineAnswer && !res.headersSent) {
            logger.info("Serving Local Knowledge Answer as Fallback due to API Error");
-           return res.status(200).send(offlineAnswer);
+           const fallbackMsg = `### ⚠️ AI Engine Currently Offline\n\nI encountered a protocol error (Neural API Key mismatch), but I have retrieved relevant info for you from my **Local Knowledge Core**:\n\n${offlineAnswer}`;
+           return res.status(200).send(fallbackMsg);
         }
       } else if (errorMsg.includes("quota") || errorMsg.includes("limit") || errorMsg.includes("429")) {
         clientError = "BANDS SATURATED: Neural quota exceeded. (Google API Quota reached)";
@@ -243,7 +258,7 @@ async function startServer() {
       }
       
       try {
-        let template = await (await import('fs')).readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+        let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
         template = await vite.transformIndexHtml(url, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e) {
@@ -254,7 +269,6 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     // Check if dist exists, otherwise fall back to source index.html (safety)
-    const fs = await import('fs');
     const hasDist = fs.existsSync(distPath);
     
     if (hasDist) {
@@ -291,4 +305,7 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch(err => {
+  console.error("FATAL CRASH DURING SERVER STARTUP:", err);
+  process.exit(1);
+});
