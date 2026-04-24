@@ -12,8 +12,16 @@ const DESTINATIONS_DATA = [
     description: 'A vibrant metropolis known for ornate shrines and ultra-modern skyscrapers.',
     keyInfo: ['Grand Palace', 'BTS Skytrain', 'Michelin Street Food', 'Sukhumvit Nightlife'],
     mood: 'High Energy / Urban',
-    hotels: ['Mandarin Oriental', 'Centara Grand', 'The Siam Hotel', 'Lub d Hostel (Solo)'],
-    beaches: ['Bang Saen (1hr drive)', 'Pattaya (Nearby)']
+    hotels: [
+      { name: 'Mandarin Oriental', type: 'Luxury' },
+      { name: 'The Siam', type: 'Art/Boutique' },
+      { name: 'Prince Palace', type: 'Budget/Large' },
+      { name: 'Lub d Siam', type: 'Social/Budget' }
+    ],
+    beaches: [
+      { name: 'Bang Saen', type: 'Family/Local' },
+      { name: 'Pattaya Beach', type: 'Activity/City' }
+    ]
   },
   {
     id: 'phuket',
@@ -23,8 +31,17 @@ const DESTINATIONS_DATA = [
     description: 'Breathtaking beaches, crystal clear waters, and world-class island resorts.',
     keyInfo: ['Patong Beach', 'Island Hopping', 'Big Buddha', 'Luxury Spas'],
     mood: 'Relaxed / Tropical',
-    hotels: ['Amanpuri', 'Rosewood Phuket', 'Keemala', 'The Slate'],
-    beaches: ['Patong Beach', 'Kata Noi', 'Nai Harn Beach', 'Kamala Beach']
+    hotels: [
+      { name: 'Amanpuri', type: 'Ultra-Luxury' },
+      { name: 'Keemala', type: 'Experiential/Unique' },
+      { name: 'Holiday Inn Express', type: 'Reliable/Budget' },
+      { name: 'The Slate', type: 'Design-Forward' }
+    ],
+    beaches: [
+      { name: 'Patong', type: 'Party/Mainstream' },
+      { name: 'Kata Noi', type: 'Family/Quiet' },
+      { name: 'Nai Harn', type: 'Pristine/Scenic' }
+    ]
   },
   {
     id: 'chiang-mai',
@@ -34,8 +51,15 @@ const DESTINATIONS_DATA = [
     description: 'Lush mountains and hundreds of elaborate Buddhist temples in the ancient city walls.',
     keyInfo: ['Doi Suthep', 'Digital Nomad Hub', 'Old City Walls', 'Sunday Walking Street'],
     mood: 'Cultural / Scenic',
-    hotels: ['Anantara Chiang Mai', 'Raya Heritage', 'The Dhara Dhevi', 'Hostel Lullaby'],
-    beaches: ['None (Mountainous)']
+    hotels: [
+      { name: 'Anantara CM', type: 'Riverside Luxury' },
+      { name: 'Raya Heritage', type: 'Culture/Quiet' },
+      { name: 'Hostel Lullaby', type: 'Elite Budget' },
+      { name: 'The Dhara Dhevi', type: 'Palatial Luxury' }
+    ],
+    beaches: [
+      { name: 'Huay Tung Tao', type: 'Lake/Local Park' }
+    ]
   },
   {
     id: 'pattaya',
@@ -45,8 +69,17 @@ const DESTINATIONS_DATA = [
     description: 'A coastal resort city famous for its entertainment, shopping, and proximity to Bangkok.',
     keyInfo: ['Walking Street', 'Sanctuary of Truth', 'Water Parks', 'Coral Island'],
     mood: 'Entertainment / Vibrant',
-    hotels: ['Dusit Thani Pattaya', 'Hilton Pattaya', 'Cape Dara Resort', 'Hard Rock Hotel'],
-    beaches: ['Pattaya Beach', 'Jomtien Beach', 'Wong Amat Beach']
+    hotels: [
+      { name: 'Royal Cliff', type: 'Luxury/Corporate' },
+      { name: 'Hilton Pattaya', type: 'City-Beach Luxury' },
+      { name: 'Ambassador City', type: 'Value/Events' },
+      { name: 'Hard Rock Hotel', type: 'Fun/Family' }
+    ],
+    beaches: [
+      { name: 'Jomtien', type: 'Quiet/Residential' },
+      { name: 'Wong Amat', type: 'Upscale/Secluded' },
+      { name: 'Koh Larn', type: 'Island/DayTrip' }
+    ]
   },
   {
     id: 'krabi',
@@ -56,8 +89,17 @@ const DESTINATIONS_DATA = [
     description: 'Stunning limestone cliffs, turquoise waters, and world-famous rock climbing.',
     keyInfo: ['Railay Beach', 'Phi Phi Islands', 'Tiger Cave Temple', 'Phulay Bay'],
     mood: 'Adventure / Tropical',
-    hotels: ['Rayavadee', 'Phulay Bay (Ritz-Carlton)', 'Pimalai Resort', 'Andamania'],
-    beaches: ['Railay Beach', 'Ao Nang', 'Phra Nang Cave Beach', 'Tubkaek']
+    hotels: [
+      { name: 'Rayavadee', type: 'Exclusive/Iconic' },
+      { name: 'Phulay Bay', type: 'Ultra-Luxury (Ritz)' },
+      { name: 'Railay Village', type: 'Mid-Range/Scenic' },
+      { name: 'Pimalai (Lanta)', type: 'Remote/Luxury' }
+    ],
+    beaches: [
+      { name: 'Railay West', type: 'Scenic/Sunsets' },
+      { name: 'Phra Nang', type: 'Iconic/Caves' },
+      { name: 'Ao Nang', type: 'Central Hub' }
+    ]
   }
 ];
 
@@ -170,14 +212,24 @@ function DestinationCard({ destination, index }: { destination: any, index: numb
         <div className="grid grid-cols-2 gap-4 mb-4 opacity-0 group-hover:opacity-100 transition-all duration-500 delay-150">
           <div>
             <p className="text-[8px] font-black uppercase tracking-widest text-brand mb-1">Stay Strategy</p>
-            <ul className="text-[10px] text-white/60 space-y-1">
-              {destination.hotels.slice(0, 3).map((h: string) => <li key={h} className="truncate">• {h}</li>)}
+            <ul className="text-[10px] text-white/60 space-y-1.5">
+              {destination.hotels.slice(0, 3).map((h: any) => (
+                <li key={h.name} className="flex flex-col">
+                  <span className="text-white truncate font-bold">{h.name}</span>
+                  <span className="text-[8px] uppercase tracking-tighter opacity-50">{h.type}</span>
+                </li>
+              ))}
             </ul>
           </div>
           <div>
             <p className="text-[8px] font-black uppercase tracking-widest text-cyan-400 mb-1">Sector Beaches</p>
-            <ul className="text-[10px] text-white/60 space-y-1">
-              {destination.beaches.slice(0, 3).map((b: string) => <li key={b} className="truncate">• {b}</li>)}
+            <ul className="text-[10px] text-white/60 space-y-1.5">
+              {destination.beaches.slice(0, 3).map((b: any) => (
+                <li key={b.name} className="flex flex-col">
+                  <span className="text-white truncate font-bold">{b.name}</span>
+                  <span className="text-[8px] uppercase tracking-tighter opacity-50">{b.type}</span>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
