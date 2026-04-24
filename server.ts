@@ -52,20 +52,22 @@ async function startServer() {
     }
 
     try {
-      // Pre-seed local insights if available, even when AI is processing
-      if (localAnswer && (geminiKey || grokKey)) {
-        res.setHeader('Content-Type', 'text/plain');
-        res.setHeader('X-Accel-Buffering', 'no');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.write(`> 🧠 **Preliminary Local Insights Found**\n${localAnswer.split('\n').filter(l => l.trim() !== '').slice(0, 3).join('\n> ')}\n\n---\n\n`);
+      // Pre-seed local insights if available
+      if (localAnswer) {
+        if (!res.headersSent) {
+          res.setHeader('Content-Type', 'text/plain');
+          res.setHeader('X-Accel-Buffering', 'no');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Connection', 'keep-alive');
+        }
+        res.write(`::: NB-TECH NEURAL PRE-ALPHA :::\n> ${localAnswer.split('\n').filter(l => l.trim() !== '').slice(0, 5).join('\n> ')}\n\n---\n\n`);
       }
 
       // 1. Gemini Implementation (Default)
       if (engine === "gemini" || (!grokKey && geminiKey)) {
         if (!geminiKey) throw new Error("GEMINI_API_KEY not configured.");
 
-        logger.info("Initializing Gemini Neural Engine...");
+        logger.info("Initializing Gemini Engine...");
         const ai = new GoogleGenAI({ apiKey: geminiKey });
         
         const contents = [
@@ -75,10 +77,7 @@ async function startServer() {
           })),
           { 
             role: 'user', 
-            parts: [
-              { text: message },
-              ...(imageData ? [{ inlineData: { data: imageData, mimeType } }] : [])
-            ] 
+            parts: [{ text: message }] 
           }
         ];
 
@@ -86,7 +85,7 @@ async function startServer() {
           model: "gemini-1.5-flash",
           contents,
           config: {
-            systemInstruction: `You are REvuBOT, the elite Thailand AI Tour Guide and Autonomous Travel Agent.
+            systemInstruction: `You are REvuBOT, the elite Thailand AI Tour Guide and Autonomous Travel Agent, developed by NB TECH, Bangladesh.
             
             Core Directives:
             1. SPECIALIZATION: You provide structured, custom-made tour plans for:
@@ -96,18 +95,17 @@ async function startServer() {
                - CORPORATE: Team building, workspace integration, group dining coordination.
                - BUSINESS: Efficiency, high-end networking spots, premium lounge access.
             2. LANGUAGE: Support English, Thai, Hindi, Sinhala, and BANGLA.
-            3. AGENT KPI:
-               - SMART PLANNING: Generate 1-14 day itineraries with exact THB budget estimates.
-               - SCAM ADVISORY: Warn about "Grand Palace Closed", "Fast Meters", and Jet Ski damage scams.
-               - PROHIBITED ACTIONS: Emphasize penalties for Vaping (30k THB fine) and Lèse-majesté laws.
+            3. REVENUE/INCOME:
+               - Always offer to help book via partner links (Booking.com, Agoda) if the user asks for hotels.
+               - For group bookings (10+ people), recommend contacting the corporate desk for commissions.
             4. TONE: Professional, "Agent-like", elite, and safety-conscious.
             5. FORMATTING: Use clean Markdown. Provide Booking-Ready data (Destination, Transport, Budget).`
           }
         });
-        
+
         if (!res.headersSent) {
           res.setHeader('Content-Type', 'text/plain');
-          res.setHeader('X-Accel-Buffering', 'no'); // Disable Nginx buffering
+          res.setHeader('X-Accel-Buffering', 'no');
           res.setHeader('Cache-Control', 'no-cache');
           res.setHeader('Connection', 'keep-alive');
         }
@@ -125,8 +123,6 @@ async function startServer() {
       // 2. Grok Implementation
       if (engine === "grok" || (grokKey && !geminiKey)) {
         if (!grokKey) throw new Error("GROK_API_KEY not configured.");
-
-        logger.info("Initializing Grok Neural Link...");
         
         const grokRes = await fetch("https://api.x.ai/v1/chat/completions", {
           method: "POST",
@@ -136,12 +132,7 @@ async function startServer() {
           },
           body: JSON.stringify({
              messages: [
-               { 
-                 role: "system", 
-                 content: `You are REvuBOT, the elite Thailand AI Tour Guide. Current user language preference: ${language}.
-                 Expertise: Hotels, transport, Thai culture, and safety.
-                 Tone: Professional, high-intelligence. Format with Markdown.` 
-               },
+               { role: "system", content: "You are REvuBOT, the elite Thailand AI Tour Guide. Format with Markdown." },
                ...history.map((h: any) => ({
                  role: h.role === 'model' ? 'assistant' : 'user',
                  content: h.parts[0].text
@@ -153,10 +144,7 @@ async function startServer() {
           })
         });
 
-        if (!grokRes.ok) {
-          const err = await grokRes.json();
-          throw new Error(`Grok API Error: ${JSON.stringify(err)}`);
-        }
+        if (!grokRes.ok) throw new Error(`Grok API Error: ${grokRes.statusText}`);
 
         if (!res.headersSent) {
           res.setHeader('Content-Type', 'text/plain');
@@ -172,18 +160,14 @@ async function startServer() {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value);
-          const lines = chunk.split("\n");
-          
+          const lines = decoder.decode(value).split("\n");
           for (const line of lines) {
             if (line.startsWith("data: ") && line !== "data: [DONE]") {
               try {
                 const json = JSON.parse(line.substring(6));
-                const content = json.choices[0].delta.content;
+                const content = json.choices[0]?.delta?.content;
                 if (content) res.write(content);
-              } catch (e) {
-                // Ignore partial JSON
-              }
+              } catch (e) {}
             }
           }
         }
@@ -191,45 +175,25 @@ async function startServer() {
         return;
       }
 
-      throw new Error("No neural engine available.");
+      throw new Error("No neural connectivity established.");
 
     } catch (error: any) {
-      logger.error("Chat Engine Critical Error", { message: error.message, stack: error.stack });
+      logger.error("Neural Bridge Failure", { message: error.message });
       
-      let clientError = "Internal neural processing error";
-      let statusCode = 500;
-
-      const errorMsg = String(error.message || "").toLowerCase();
+      const isAuthErr = error.message.toLowerCase().includes("api key") || error.message.toLowerCase().includes("key_invalid");
       
-      if (errorMsg.includes("api key not valid") || errorMsg.includes("api_key_invalid") || errorMsg.includes("invalid api key")) {
-        clientError = "INVALID API KEY: The Gemini API Key provided is rejected by Google. Please check your AI Studio Settings and ensure GEMINI_API_KEY is correct.";
-        statusCode = 401;
-
-        // Try to provide a local answer instead of just returning an error if headers haven't been sent
-        const offlineAnswer = findLocalAnswer(message);
-        if (offlineAnswer && !res.headersSent) {
-           logger.info("Serving Local Knowledge Answer as Fallback due to API Error");
-           const fallbackMsg = `### ⚠️ AI Engine Currently Offline\n\nI encountered a protocol error (Neural API Key mismatch), but I have retrieved relevant info for you from my **Local Knowledge Core**:\n\n${offlineAnswer}`;
-           return res.status(200).send(fallbackMsg);
-        }
-      } else if (errorMsg.includes("quota") || errorMsg.includes("limit") || errorMsg.includes("429")) {
-        clientError = "BANDS SATURATED: Neural quota exceeded. (Google API Quota reached)";
-        statusCode = 429;
-      } else if (errorMsg.includes("safety") || errorMsg.includes("blocked")) {
-        clientError = "PROTOCOL VIOLATION: Request blocked by safety filters.";
-        statusCode = 400;
-      }
-
       if (res.headersSent) {
-        logger.warn("Headers already sent, cannot send JSON error. Writing error suffix to stream.");
-        res.write(`\n\n[NEURAL ERROR: ${clientError}]`);
+        res.write(`\n\n::: 📡 CONNECTION DROPPED :::\n${isAuthErr ? "Neural Key Invalid." : "Stream Interrupted."}\nFalling back to NB-TECH Local Memory for consistency.`);
         res.end();
-      } else {
-        res.status(statusCode).json({ 
-          error: clientError,
-          requestId: Math.random().toString(36).substring(7)
-        });
+        return;
       }
+
+      if (isAuthErr) {
+        const fallback = findLocalAnswer(message) || "Neural Engine Unavailable. Please verify API Credentials in System Settings.";
+        return res.status(200).send(`::: ⚠️ NEURAL KEY ERROR :::\n\n${fallback}`);
+      }
+
+      res.status(500).send(`SYSTEM ERROR: ${error.message}`);
     }
   });
 

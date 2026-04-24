@@ -83,23 +83,43 @@ export default function App() {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<Layout user={user} />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/chat/:id" element={<Chat />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/destinations" element={<Destinations />} />
-          <Route path="/budget" element={<Budget />} />
-          <Route path="/planner" element={<Planner />} />
-          <Route path="/admin" element={user && !user.isAnonymous && user.email === 'admin@revubot.com' ? <Admin /> : <Navigate to="/chat" />} />
-        </Route>
-        <Route 
-          path="/login" 
-          element={!user || user.isAnonymous ? <Login /> : <Navigate to="/chat" />} 
-        />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<Layout user={user} />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/chat/:id" element={<Chat />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/destinations" element={<Destinations />} />
+            <Route path="/budget" element={<Budget />} />
+            <Route path="/planner" element={<Planner />} />
+            <Route path="/admin" element={user && !user.isAnonymous && user.email === 'admin@revubot.com' ? <Admin /> : <Navigate to="/chat" />} />
+          </Route>
+          <Route 
+            path="/login" 
+            element={!user || user.isAnonymous ? <Login /> : <Navigate to="/chat" />} 
+          />
+        </Routes>
+      </BrowserRouter>
+      {/* Footer Branding */}
+      <footer className="py-6 px-10 bg-[#1A1A1A] border-t border-white/5 text-center">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-xs text-neutral-500 uppercase tracking-[0.2em] mb-2 font-medium">
+            Developed by <span className="text-cyan-400 font-bold">NB TECH</span>, Bangladesh
+          </p>
+          <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-[10px] text-neutral-600 mb-2">
+            <span>Panthapath, Dhaka</span>
+            <span className="w-1 h-1 bg-neutral-800 rounded-full"></span>
+            <span>+880 1535778111</span>
+          </div>
+          <div className="flex justify-center gap-6 text-[9px] text-neutral-400 font-serif italic">
+            <span>Real-time Flight & Weather Assistance</span>
+            <span>Multilingual Support (EN/CN/JP/BN)</span>
+            <span>Safety & Logistics Intelligence</span>
+          </div>
+        </div>
+      </footer>
+    </>
   );
 }

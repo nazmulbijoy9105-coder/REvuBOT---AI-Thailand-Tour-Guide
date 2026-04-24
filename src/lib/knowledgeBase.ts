@@ -96,9 +96,34 @@ export const THAILAND_KNOWLEDGE_BASE: KnowledgeEntry[] = [
     answer: "- **ATM Fee:** Almost all ATMs charge 220 THB per withdrawal for foreign cards. Withdraw large amounts to save on fees.\n- **Tipping:** Not mandatory but expected in tourist areas. 10-20 THB for porters, 10% in upscale restaurants, round up for taxis.\n- **Cash is King:** While malls take cards, markets and street food are cash only."
   },
   {
-    category: "Family & Business Travel",
-    keywords: ["family", "kid", "child", "business", "work", "coworking", "corporate", "team", "meeting"],
-    answer: "- **Family:** Thailand is incredibly kid-friendly. Hotels often have 'Kids Clubs'. Use Grab Family for car seats.\n- **Coworking:** Great hubs in Bangkok (The Hive) and Chiang Mai (Yellow, Punspace).\n- **Business Etiquette:** Dress conservatively. Punctuality is appreciated but 'Thai Time' (slight delay) is common. Handing over a business card with two hands is a sign of respect."
+    category: "Revenue & Partner Model",
+    keywords: ["income", "revenue", "partner", "book", "commission", "booking.com", "agoda", "viator", "skyscanner", "premium"],
+    answer: "- **Booking Partners:** REvuBOT earns commissions via our official partners: Booking.com (Hotels), Skyscanner (Flights), and Viator (Tours).\n- **Premium Service:** Advanced flight tracking and 1-on-1 human expert consultation available for 'Elite' members.\n- **B2B:** Local Thai businesses can sponsor 'Top Spot' visibility in our 'Attractions' recommendations."
+  },
+  {
+    category: "Transportation",
+    keywords: ["transport", "taxi", "grab", "bolt", "bts", "mrt", "train", "tuk tuk", "bus"],
+    answer: "- **Bangkok:** Use BTS (Skytrain) and MRT (Subway) to avoid traffic. \n- **Apps:** Grab and Bolt are essential. Use 'Bolt' for the cheapest rides, 'Grab' for the best service.\n- **Taxis:** Always insist on the meter ('Meter, please'). If they refuse, get out and find another.\n- **Trains:** State Railway of Thailand (SRT) connects Bangkok to Chiang Mai and the South. Book '1st Class Sleeper' in advance."
+  },
+  {
+    category: "Laws & Scams",
+    keywords: ["law", "scam", "jail", "fine", "police", "vape", "royal", "drug", "closed", "meter"],
+    answer: "- **Vaping:** ILLEGAL. Fines up to 30,000 THB or jail time. Do not bring them into the country.\n- **Lèse-majesté:** It is a high crime to insult the Monarchy. This includes stepping on coins or defacing images.\n- **Generic Scams:** 'The Grand Palace is closed' (it's not), the 20 Baht Tuk-Tuk tour (it's a trap to take you to tailor shops).\n- **Drugs:** While Cannabis is decriminalized, public smoking is restricted and 'stronger' drugs carry severe penalties including the death penalty."
+  },
+  {
+    category: "Hotels & Stay",
+    keywords: ["hotel", "stay", "resort", "hostel", "accommodation", "where to stay", "luxury"],
+    answer: "- **Bangkok:** Sukhumvit (Nightlife), Riverside (Luxury), Siam (Shopping), Khao San (Backpackers).\n- **Chiang Mai:** Old City (Charms/History), Nimman (Hip/Modern).\n- **Islands:** Always book beachfront resorts through our integrated 'RevuBot Deals' via Agoda for verified safety standards."
+  },
+  {
+    category: "Food & Dining",
+    keywords: ["food", "eat", "street food", "restaurant", "michelin", "halal", "vegetarian", "spicy"],
+    answer: "- **Safe Street Food:** Look for high-turnover stalls where locals are queuing.\n- **Water:** NEVER drink tap water. Use ice only in established restaurants.\n- **Halal:** Easily found in Bangkok's Soi Arab and Southern Thailand provinces (Krabi, Phuket).\n- **Spicy:** 'Phet Nid Noi' means 'A little bit spicy' (which is still spicy for most tourists)."
+  },
+  {
+    category: "Travel Segments (Neural Planning)",
+    keywords: ["solo", "couple", "family", "group", "corporate", "business"],
+    answer: "- **SOLO:** Focus on social hostels and group day-tours for safety.\n- **COUPLE:** Private villas in Koh Samui or sunset cruises in Bangkok.\n- **FAMILY:** Focus on Phuket resorts with Kids Clubs and Grab Family (Car seats).\n- **CORPORATE/BUSINESS:** Specialized team-building in Hua Hin or luxury co-working in Nimman."
   }
 ];
 

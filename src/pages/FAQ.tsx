@@ -91,6 +91,34 @@ const TACTICAL_INTEL: Record<string, any[]> = {
       answer: 'Never touch a Thai person\'s head (the most sacred part of the body). Do not point your feet at people, monks, or Buddha images (the lowest/dirtiest part). Shirts MUST be worn in public (outside beaches/pools); walking shirtless in cities or shops can attract fines and is considered highly offensive.',
       category: 'safety'
     }
+  ],
+  transport: [
+    {
+      id: 'trans-1',
+      question: 'Mastering the BTS & MRT',
+      answer: 'Bangkok\'s rail system is the #1 way to avoid traffic. BTS (Skytrain) covers Sukhumvit/Silom. MRT (Subway) connects to Hualamphong and Bang Sue. Note: Tickets are NOT interchangeable; you need separate cards or QR payment for each.',
+      category: 'transport'
+    },
+    {
+      id: 'trans-2',
+      question: 'Grab vs. Bolt vs. Indriver',
+      answer: 'Grab is the most reliable and accepts international cards. Bolt is often 30-40% cheaper but usually requires cash. Indriver allows you to bid for your fare. Recommendation: Use Grab for airport runs for maximum reliability.',
+      category: 'transport'
+    }
+  ],
+  food: [
+    {
+      id: 'food-1',
+      question: 'Ice & Water Safety Protocols',
+      answer: 'Tap water is NOT potable. However, ice (Namแข็ง) in most restaurants and bars is industrially produced and safe (look for tube/cube shapes). Crushed ice at small street stalls is higher risk.',
+      category: 'food'
+    },
+    {
+      id: 'food-2',
+      question: 'Finding Halal & Vegan Centers',
+      answer: 'Bangkok Soi 3 (Sukhumvit) is the primary Halal corridor. For Vegan/Vegetarian travelers, look for the yellow "Jay" (เจ) banners on stalls, especially during the Nine Emperor Gods Festival in October.',
+      category: 'food'
+    }
   ]
 };
 
