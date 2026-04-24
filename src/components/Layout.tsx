@@ -24,6 +24,29 @@ export default function Layout({ user }: { user: User | null }) {
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-surface text-ink">
+      {/* 2026 Safety Ticker */}
+      <div className="bg-brand py-1.5 px-4 overflow-hidden whitespace-nowrap border-b border-brand-dark/20 flex items-center gap-4">
+        <div className="flex items-center gap-2 text-panel font-black text-[9px] uppercase tracking-widest shrink-0 animate-pulse">
+          <Shield className="w-3 h-3" />
+          <span>2026 Priority Alert</span>
+        </div>
+        <div className="text-panel/90 text-[10px] font-bold uppercase tracking-wide flex animate-marquee gap-12">
+          <span>• MANDATORY TDAC: Register digital arrival card 3 days prior.</span>
+          <span>• SCOOTER LAW: Helmet and Shirt mandatory for all riders.</span>
+          <span>• VISA UPDATE: 60-day visa-free for 93 countries.</span>
+          <span>• ALCOHOL BAN: No sales between 14:00 - 17:00.</span>
+          <span>• MOO DENG: High crowds at Khao Kheow Zoo - Plan ahead.</span>
+          <span>• RESPECT: Monarchy respect rules strictly enforced. No vaping.</span>
+          {/* Duplicate for seamless loop */}
+          <span>• MANDATORY TDAC: Register digital arrival card 3 days prior.</span>
+          <span>• SCOOTER LAW: Helmet and Shirt mandatory for all riders.</span>
+          <span>• VISA UPDATE: 60-day visa-free for 93 countries.</span>
+          <span>• ALCOHOL BAN: No sales between 14:00 - 17:00.</span>
+          <span>• MOO DENG: High crowds at Khao Kheow Zoo - Plan ahead.</span>
+          <span>• RESPECT: Monarchy respect rules strictly enforced. No vaping.</span>
+        </div>
+      </div>
+
       <header className="h-16 border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">

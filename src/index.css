@@ -13,6 +13,17 @@
   --color-ink-muted: #64748b; /* slate-500 */
   --color-border: #e2e8f0; /* slate-200 */
   --color-border-dark: #334155; /* slate-700 */
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+  display: flex !important;
+  width: max-content;
 }
 
 body {
