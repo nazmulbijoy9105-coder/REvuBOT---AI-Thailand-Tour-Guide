@@ -43,7 +43,32 @@ export const THAILAND_KNOWLEDGE_BASE: KnowledgeEntry[] = [
   {
     category: "Connectivity & Internet",
     keywords: ["sim card", "internet", "wifi", "ais", "dtac", "true", "roaming", "esim"],
-    answer: "- **SIM Cards:** Easily available at Suvarnabhumi Airport or any 7-Eleven. \n- **Top Providers:** AIS (best coverage), DTAC, and TrueMove H.\n- **Cost:** Unlimited data plans for 7-15 days cost around 300-600 THB.\n- **Tourist SIM:** Often comes with free data for apps like Grab, WhatsApp, and Facebook."
+    answer: "- **SIM Cards:** Easily available at Suvarnabhumi Airport or any 7-Eleven. Top providers: AIS, DTAC, and TrueMove H.\n- **Wi-Fi:** Free common in hotels/cafes, but speeds vary.\n- **Cost:** Unlimited data plans for 7-15 days cost around 300-600 THB."
+  },
+  {
+    category: "Culture & Etiquette 2026",
+    keywords: ["culture", "respect", "temple", "clothing", "dress", "monks", "head", "feet", "shoes off", "wai"],
+    answer: "- **Temple Dress Code:** Shoulders and knees MUST be covered. Carry a sarong if wearing shorts.\n- **Shoes Off:** Always remove shoes when entering homes, temples, and some small businesses.\n- **Wai Greeting:** Palms together with a slight bow is the traditional greeting.\n- **Social Taboos:** Never touch a Thai person's head; never point your feet at people or religious objects."
+  },
+  {
+    category: "Health & Safety (2026)",
+    keywords: ["medical", "safety", "emergency", "police", "scam", "hospital", "water", "vaccine", "insurance"],
+    answer: "- **Water Safety:** NEVER drink tap water. Use bottled or filtered water even for brushing if sensitive.\n- **Vaccines:** Consider standard travel vaccines; carry comprehensive travel insurance.\n- **Emergency Numbers:** 1155 (Tourist Police - English support), 191 (General Police).\n- **Scam Watch:** Beware of 'Jet Ski Damage' scams, 'Overpriced Gems', and 'Closed Palace' touts. Use only trusted vendors."
+  },
+  {
+    category: "Language Basics (REvuBOT Lite)",
+    keywords: ["language", "phrase", "thai", "hello", "thank you", "bathroom"],
+    answer: "- **Sawasdee (ka/krub):** Hello\n- **Khop Khun (ka/krub):** Thank you\n- **Hong Nam? (ka/krub):** Where’s the bathroom?\n- **Mai Phet:** Not spicy\n*Add 'ka' (women) or 'krub' (men) for politeness.*"
+  },
+  {
+    category: "Sustainable Travel",
+    keywords: ["sustainable", "eco", "plastic", "wildlife", "local"],
+    answer: "- **Eco-Tourism:** Avoid single-use plastics and support local operators.\n- **Wildlife:** Do NOT support elephant riding or circus tricks. Visit ethical sanctuaries only.\n- **Impact:** Support local artisans and family-run businesses for a positive footprint."
+  },
+  {
+    category: "Electricity & Utilities",
+    keywords: ["electricity", "plug", "adapter", "voltage", "220v"],
+    answer: "- **Voltage:** 220V standard.\n- **Plugs:** Types A, B, and C are common. A universal adapter is highly recommended."
   },
   {
     category: "Shopping & Markets",

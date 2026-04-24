@@ -15,6 +15,16 @@ const VIBES = [
 
 const DESTINATIONS = ["Bangkok", "Phuket", "Chiang Mai", "Koh Samui", "Pattaya", "Krabi"];
 
+const INTEREST_TAGS = [
+  { id: 'history', name: 'History', icon: '🏛️' },
+  { id: 'nightlife', name: 'Nightlife', icon: '🌃' },
+  { id: 'nature', name: 'Nature', icon: '🌿' },
+  { id: 'adventure', name: 'Adventure', icon: '🧗' },
+  { id: 'foodie', name: 'Foodie', icon: '🍜' },
+  { id: 'shopping', name: 'Shopping', icon: '🛍️' },
+  { id: 'wellness', name: 'Wellness', icon: '🧘' },
+];
+
 export default function Planner() {
   const [step, setStep] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
@@ -24,10 +34,20 @@ export default function Planner() {
     vibe: 'culture',
     budget: '500',
     groupSize: 'solo',
-    interests: ''
+    interests: '',
+    tags: [] as string[]
   });
   const [result, setResult] = React.useState<string | null>(null);
   const [savedMissions, setSavedMissions] = React.useState<any[]>([]);
+
+  const toggleTag = (tagId: string) => {
+    setMission(prev => ({
+      ...prev,
+      tags: prev.tags.includes(tagId) 
+        ? prev.tags.filter(id => id !== tagId)
+        : [...prev.tags, tagId]
+    }));
+  };
 
   React.useEffect(() => {
     if (auth.currentUser) fetchSaved();
@@ -48,11 +68,12 @@ export default function Planner() {
     setLoading(true);
     setResult(null);
     try {
+      const combinedInterests = [...mission.tags, mission.interests].filter(Boolean).join(', ');
       const prompt = `Generate a STRATEGIC ${mission.days}-day travel mission for ${mission.destination}. 
       - Traveler Profile: ${mission.groupSize} execution.
       - Budget Constraint: $${mission.budget} TOTAL for the entire group.
       - Strategic Vibe: ${mission.vibe}. 
-      - Objectives: ${mission.interests}. 
+      - Objectives: ${combinedInterests}. 
       
       CRITICAL: Logic must account for CURRENT season in Thailand.
       - If ${mission.groupSize} is "team/large group", focus on bulk transit (minivan), large villas, and group-optimized dining.
@@ -172,7 +193,24 @@ export default function Planner() {
                     </div>
 
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Specific Objectives (Optional)</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block ml-1">Mission Interests</label>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {INTEREST_TAGS.map(tag => (
+                        <button
+                          key={tag.id}
+                          onClick={() => toggleTag(tag.id)}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+                            mission.tags.includes(tag.id)
+                              ? 'bg-brand border-brand text-panel shadow-md'
+                              : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-brand/30'
+                          }`}
+                        >
+                          <span>{tag.icon}</span>
+                          {tag.name}
+                        </button>
+                      ))}
+                    </div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Additional Objectives</label>
                     <textarea 
                       placeholder="e.g. Michelin street food, night markets, Scuba diving..."
                       value={mission.interests}

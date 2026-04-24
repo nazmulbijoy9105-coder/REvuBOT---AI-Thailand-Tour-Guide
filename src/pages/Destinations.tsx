@@ -11,7 +11,9 @@ const DESTINATIONS_DATA = [
     image: 'https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&q=80&w=1000',
     description: 'A vibrant metropolis known for ornate shrines and ultra-modern skyscrapers.',
     keyInfo: ['Grand Palace', 'BTS Skytrain', 'Michelin Street Food', 'Sukhumvit Nightlife'],
-    mood: 'High Energy / Urban'
+    mood: 'High Energy / Urban',
+    hotels: ['Mandarin Oriental', 'Centara Grand', 'The Siam Hotel', 'Lub d Hostel (Solo)'],
+    beaches: ['Bang Saen (1hr drive)', 'Pattaya (Nearby)']
   },
   {
     id: 'phuket',
@@ -20,7 +22,9 @@ const DESTINATIONS_DATA = [
     image: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&q=80&w=1000',
     description: 'Breathtaking beaches, crystal clear waters, and world-class island resorts.',
     keyInfo: ['Patong Beach', 'Island Hopping', 'Big Buddha', 'Luxury Spas'],
-    mood: 'Relaxed / Tropical'
+    mood: 'Relaxed / Tropical',
+    hotels: ['Amanpuri', 'Rosewood Phuket', 'Keemala', 'The Slate'],
+    beaches: ['Patong Beach', 'Kata Noi', 'Nai Harn Beach', 'Kamala Beach']
   },
   {
     id: 'chiang-mai',
@@ -29,7 +33,9 @@ const DESTINATIONS_DATA = [
     image: 'https://images.unsplash.com/photo-1590732488836-8152599720b0?auto=format&fit=crop&q=80&w=1000',
     description: 'Lush mountains and hundreds of elaborate Buddhist temples in the ancient city walls.',
     keyInfo: ['Doi Suthep', 'Digital Nomad Hub', 'Old City Walls', 'Sunday Walking Street'],
-    mood: 'Cultural / Scenic'
+    mood: 'Cultural / Scenic',
+    hotels: ['Anantara Chiang Mai', 'Raya Heritage', 'The Dhara Dhevi', 'Hostel Lullaby'],
+    beaches: ['None (Mountainous)']
   },
   {
     id: 'pattaya',
@@ -38,7 +44,20 @@ const DESTINATIONS_DATA = [
     image: 'https://images.unsplash.com/photo-1623910307612-4c28f3a38891?auto=format&fit=crop&q=80&w=1000',
     description: 'A coastal resort city famous for its entertainment, shopping, and proximity to Bangkok.',
     keyInfo: ['Walking Street', 'Sanctuary of Truth', 'Water Parks', 'Coral Island'],
-    mood: 'Entertainment / Vibrant'
+    mood: 'Entertainment / Vibrant',
+    hotels: ['Dusit Thani Pattaya', 'Hilton Pattaya', 'Cape Dara Resort', 'Hard Rock Hotel'],
+    beaches: ['Pattaya Beach', 'Jomtien Beach', 'Wong Amat Beach']
+  },
+  {
+    id: 'krabi',
+    name: 'Krabi',
+    subTitle: 'Limestone Paradise',
+    image: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&q=80&w=1000',
+    description: 'Stunning limestone cliffs, turquoise waters, and world-famous rock climbing.',
+    keyInfo: ['Railay Beach', 'Phi Phi Islands', 'Tiger Cave Temple', 'Phulay Bay'],
+    mood: 'Adventure / Tropical',
+    hotels: ['Rayavadee', 'Phulay Bay (Ritz-Carlton)', 'Pimalai Resort', 'Andamania'],
+    beaches: ['Railay Beach', 'Ao Nang', 'Phra Nang Cave Beach', 'Tubkaek']
   }
 ];
 
@@ -146,8 +165,23 @@ function DestinationCard({ destination, index }: { destination: any, index: numb
            <span className="text-[10px] font-black uppercase tracking-widest text-white/50">{destination.subTitle}</span>
         </div>
         <h3 className="text-5xl font-black text-white uppercase tracking-tighter leading-none mb-4">{destination.name}</h3>
-        <p className="text-white/70 text-sm font-medium max-w-xs mb-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">{destination.description}</p>
+        <p className="text-white/70 text-sm font-medium max-w-xs mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">{destination.description}</p>
         
+        <div className="grid grid-cols-2 gap-4 mb-4 opacity-0 group-hover:opacity-100 transition-all duration-500 delay-150">
+          <div>
+            <p className="text-[8px] font-black uppercase tracking-widest text-brand mb-1">Stay Strategy</p>
+            <ul className="text-[10px] text-white/60 space-y-1">
+              {destination.hotels.slice(0, 3).map((h: string) => <li key={h} className="truncate">• {h}</li>)}
+            </ul>
+          </div>
+          <div>
+            <p className="text-[8px] font-black uppercase tracking-widest text-cyan-400 mb-1">Sector Beaches</p>
+            <ul className="text-[10px] text-white/60 space-y-1">
+              {destination.beaches.slice(0, 3).map((b: string) => <li key={b} className="truncate">• {b}</li>)}
+            </ul>
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-2 opacity-0 group-hover:opacity-100 transition-all duration-500 delay-200">
            {destination.keyInfo.map((info: string) => (
              <span key={info} className="text-[9px] font-black uppercase tracking-widest text-white border border-white/20 px-3 py-1.5 rounded-full hover:bg-white hover:text-panel transition-colors">{info}</span>
