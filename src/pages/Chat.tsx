@@ -16,7 +16,7 @@ import {
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { generateTravelAdvice } from '../lib/ai';
-import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X, Mic, MicOff, Search, Volume2, VolumeX, Banknote, ArrowRightLeft, Command } from 'lucide-react';
+import { Send, Plus, History, Globe2, Bot, User, Trash2, Image as ImageIcon, X, Mic, MicOff, Search, Volume2, VolumeX, Banknote, ArrowRightLeft, Command, Heart, Users, Briefcase, CircleDollarSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import CommandPalette from '../components/CommandPalette';
@@ -848,6 +848,36 @@ export default function Chat() {
 
           <div className="absolute inset-x-0 -top-12 h-12 bg-gradient-to-t from-slate-50/50 to-transparent pointer-events-none" />
           
+          <div className="max-w-4xl mx-auto mb-4">
+             <div className="flex flex-wrap gap-2 items-center justify-center sm:justify-start">
+               {[
+                 { id: 'solo', label: 'Solo', icon: <User className="w-3 h-3" /> },
+                 { id: 'couple', label: 'Couple', icon: <Heart className="w-3 h-3" /> },
+                 { id: 'group', label: 'Group/Family', icon: <Users className="w-3 h-3" /> },
+                 { id: 'corporate', label: 'Corporate', icon: <Briefcase className="w-3 h-3" /> },
+                 { id: 'business', label: 'Business', icon: <CircleDollarSign className="w-3 h-3" /> }
+               ].map((type) => (
+                 <button
+                   key={type.id}
+                   type="button"
+                   onClick={() => setInput(`I am planning a ${type.label} tour in Thailand. Please provide a custom-made professional plan with bookings and transport minimum info.`)}
+                   className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md border border-slate-200 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-brand hover:border-brand hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:scale-95"
+                 >
+                   {type.icon}
+                   {type.label}
+                 </button>
+               ))}
+               <div className="h-4 w-px bg-slate-200 mx-2 hidden sm:block" />
+               <button
+                 type="button"
+                 onClick={() => setInput("Generate a full 7-day Thailand itinerary for me. Include custom transport and budget details.")}
+                 className="px-4 py-2 bg-brand text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-brand/20 hover:scale-105 transition-all"
+               >
+                 Auto Design Plan
+               </button>
+             </div>
+          </div>
+
           <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto relative z-10">
             <AnimatePresence>
               {selectedImage && (
