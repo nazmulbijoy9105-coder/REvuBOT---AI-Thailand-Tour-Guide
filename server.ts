@@ -68,7 +68,7 @@ async function startServer() {
         ];
 
         const streamingResult = await ai.models.generateContentStream({ 
-          model: "gemini-1.5-flash",
+          model: "gemini-3-flash-preview",
           contents,
           config: {
             systemInstruction: `You are REvuBOT, the elite Thailand AI Tour Guide and Autonomous Travel Agent.
@@ -180,21 +180,29 @@ async function startServer() {
       let clientError = "Internal neural processing error";
       let statusCode = 500;
 
-      if (error.message?.includes("API key not valid") || error.message?.includes("API_KEY_INVALID")) {
-        clientError = "INVALID API KEY: The Gemini API Key provided is rejected by Google. Please open the SETTINGS menu in AI Studio and ensure your GEMINI_API_KEY is correct. (Reason: API_KEY_INVALID)";
+      const errorMsg = String(error.message || "").toLowerCase();
+      
+      if (errorMsg.includes("api key not valid") || errorMsg.includes("api_key_invalid") || errorMsg.includes("invalid api key")) {
+        clientError = "INVALID API KEY: The Gemini API Key provided is rejected by Google. Please check your AI Studio Settings and ensure GEMINI_API_KEY is correct.";
         statusCode = 401;
-      } else if (error.message?.includes("quota") || error.message?.includes("limit")) {
+      } else if (errorMsg.includes("quota") || errorMsg.includes("limit") || errorMsg.includes("429")) {
         clientError = "BANDS SATURATED: Neural quota exceeded. (Google API Quota reached)";
         statusCode = 429;
-      } else if (error.message?.includes("safety")) {
+      } else if (errorMsg.includes("safety") || errorMsg.includes("blocked")) {
         clientError = "PROTOCOL VIOLATION: Request blocked by safety filters.";
         statusCode = 400;
       }
 
-      res.status(statusCode).json({ 
-        error: clientError,
-        requestId: Math.random().toString(36).substring(7)
-      });
+      if (res.headersSent) {
+        logger.warn("Headers already sent, cannot send JSON error. Writing error suffix to stream.");
+        res.write(`\n\n[NEURAL ERROR: ${clientError}]`);
+        res.end();
+      } else {
+        res.status(statusCode).json({ 
+          error: clientError,
+          requestId: Math.random().toString(36).substring(7)
+        });
+      }
     }
   });
 
