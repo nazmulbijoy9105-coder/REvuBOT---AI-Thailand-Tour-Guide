@@ -179,6 +179,34 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Special Operations / Moo Deng */}
+      <section className="py-24 px-8 bg-brand/5 border-y border-brand/10">
+        <div className="max-w-7xl mx-auto">
+          <header className="mb-16">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand mb-2">Seasonal High-Priority Missions</p>
+            <h2 className="text-4xl font-serif">Moo Deng Intelligence</h2>
+            <p className="text-ink/50 mt-2">Recommended routes to meet the iconic pygmy hippo at Khao Kheow.</p>
+          </header>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <MooDengCard 
+              route="Chiang Mai ➔ Chonburi" 
+              timing="2 Days, 1 Night ✈️" 
+              desc="Aerial deployment to Suvarnabhumi, followed by private transport to Khao Kheow Open Zoo."
+            />
+            <MooDengCard 
+              route="Nakhon Sawan ➔ Chonburi" 
+              timing="3 Days, 2 Nights 🚗" 
+              desc="Land-based logistics via Bangkok. Includes overnight stay at verified Chonburi resorts."
+            />
+            <MooDengCard 
+              route="Samut Prakan ➔ Chonburi" 
+              timing="Day Trip (Rapid Ops) ⚡" 
+              desc="Direct intercept. 1.5-hour logistics from Samut Prakan to meet the viral icon."
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Stats Section */}
       <section className="py-24 border-t border-ink/10">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
@@ -200,6 +228,16 @@ export default function Home() {
            </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function MooDengCard({ route, timing, desc }: { route: string, timing: string, desc: string }) {
+  return (
+    <div className="bg-white p-6 rounded-2xl border border-brand/20 shadow-sm hover:shadow-md transition-all">
+      <div className="text-[10px] font-black text-brand uppercase tracking-widest mb-2">{timing}</div>
+      <h4 className="text-xl font-serif mb-3 text-ink">{route}</h4>
+      <p className="text-sm text-ink/50 font-light leading-relaxed">{desc}</p>
     </div>
   );
 }

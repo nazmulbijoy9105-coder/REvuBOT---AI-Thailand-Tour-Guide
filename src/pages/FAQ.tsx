@@ -16,108 +16,74 @@ const CATEGORIES = [
 const TACTICAL_INTEL: Record<string, any[]> = {
   visa: [
     {
-      id: 'visa-1',
-      question: 'Visa on Arrival (VOA) Requirements',
-      answer: 'Available for 19 countries (including India, Bhutan). Requirements: Passport valid for 30+ days, 15-day exit proof, 1,000 THB/person (2,000 THB if not waived). Bangladesh citizens usually require a pre-approved E-Visa from the Royal Thai Embassy.',
+      id: 'visa-2025-1',
+      question: '60-Day Visa Exemption (2026)',
+      answer: 'Travelers from 93 countries (including India, USA, UK, Australia, Bangladesh) can enter for 60 days visa-free for tourism or short-term business. This can be extended by 30 days once per entry at any immigration office.',
       category: 'visa'
     },
     {
-      id: 'visa-2',
-      question: 'Visa Overstay Penalties',
-      answer: 'Fine of 500 THB per day (max 20,000 THB). Long overstays (>90 days) lead to blacklist entry bans (5-10 years). Always use REvuBOT for renewal alerts!',
+      id: 'visa-2025-2',
+      question: 'Mandatory Digital Arrival Card (TDAC)',
+      answer: 'Starting May 1, 2025, EVERY traveler arriving by air, land, or sea must complete the Thailand Digital Arrival Card (TDAC) online within 3 days BEFORE arrival. Failure to show the QR code will result in entry denial.',
+      category: 'visa'
+    },
+    {
+      id: 'visa-2025-3',
+      question: 'DTV Visa for Digital Nomads',
+      answer: 'The Destination Thailand Visa (DTV) allows a 5-year multiple-entry stay. Each entry is valid for 180 days (extendable by another 180). Perfect for remote workers, muay thai students, or medical patients.',
       category: 'visa'
     }
   ],
   hotels: [
     {
       id: 'hotel-1',
-      question: 'Average Accommodation Prices',
-      answer: 'Bangkok: Low-range (Hostels/Guesthouses) 300-800 THB/night. Mid-range 1,200-2,500 THB. Luxury 5,000+ THB. Chiang Mai is typically 20-30% cheaper than Phuket/Bangkok.',
-      category: 'hotels'
-    },
-    {
-      id: 'hotel-2',
-      question: 'Booking Best Practices',
-      answer: 'Use Agoda or Booking.com for international rates. For "Single to Team" variations, large groups should check Airbnb Global for "Pool Villas" in Sukhumvit or Phuket, which are cheaper per head than multiple hotel rooms.',
+      question: 'Verified Safety Standards',
+      answer: 'Always look for SHA+ or similar certifications on Booking.com and Agoda properties. Bangkok: Sukhumvit for nightlife, Riverside for luxury. Chonburi/Pattaya: Sea-view luxury resorts are best booked 3 months in advance for Moo Deng visits.',
       category: 'hotels'
     }
   ],
   safety: [
     {
-      id: 'scam-1',
-      question: 'The "Closed Palace" Scam',
-      answer: 'Tuk-tuk drivers may tell you the Grand Palace is "closed for a ceremony." They will then offer a cheap tour to "exclusive" shops. IGNORE THEM. The palace is almost never closed. This is a commission-based trap.',
+      id: 'law-2026-1',
+      question: 'Strict Scooter & Helmet Laws',
+      answer: 'In 2026, police have intensified enforcement. You MUST wear a helmet AND a shirt while riding. Fines for riding shirtless or without a helmet are immediate (500-2,000 THB). Driving without a valid international license (IDP) can lead to vehicle seizure.',
       category: 'safety'
     },
     {
-      id: 'scam-2',
-      question: 'Taxi Meter Scams',
-      answer: 'Always insist on "Meter, please." If they refuse or say "flat rate 300 baht," get out and find another. In Bangkok, the meter starts at 35 THB. Report unmetered taxis via the 1584 hotline.',
+      id: 'law-2026-2',
+      question: 'Alcohol Sales Bans',
+      answer: 'Alcohol cannot be sold from 2:00 PM to 5:00 PM daily. This is strictly enforced in 7-Eleven and malls. Sales are also banned on religious holidays and election days.',
       category: 'safety'
     },
     {
-      id: 'law-1',
-      question: 'Lèse-majesté Laws (Article 112)',
-      answer: 'Defaming, insulting, or threatening the Royal Family is a severe crime. Penalties range from 3 to 15 years in prison. Exercise extreme respect when discussing the monarchy.',
-      category: 'safety'
-    },
-    {
-      id: 'law-2',
-      question: 'Vaping & E-Cigarettes',
-      answer: 'Possession and use of e-cigarettes or vapes are illegal in Thailand. Penalties include heavy fines (up to 30,000 THB) and potential prison time. Do not bring them into the country.',
-      category: 'safety'
-    },
-    {
-      id: 'scam-3',
-      question: 'Jet Ski Damage Scam',
-      answer: 'Common in Pattaya and Phuket. After returning a jet ski, the operator claims you caused damage and demands 50,000+ THB. They often use fake paint to hide old cracks. TACTIC: Always take HD photos/videos of the entire jet ski BEFORE renting. If intimidated, call the Tourist Police (1155) immediately.',
-      category: 'safety'
-    },
-    {
-      id: 'scam-4',
-      question: 'Gem & Jewelry Scams',
-      answer: 'Friendly locals or drivers may claim there is a "Government Special Sale" for gems that can be resold for profit abroad. This is 100% false. You will buy low-quality stones at 10x their value. INTELLIGENCE: The Thai government does NOT run sales or endorse private gem shops. Buy only from reputable established jewelers with certifications.',
-      category: 'safety'
-    },
-    {
-      id: 'law-3',
-      question: 'Alcohol Sales & Misconceptions',
-      answer: 'Sales are STRICTLY restricted to 11:00-14:00 and 17:00-24:00. Buying alcohol on religious holidays or election days is prohibited. Public drinking near schools, hospitals, or temples is an arrestable offense. Pro-tip: Do not drink on trains or in parks.',
-      category: 'safety'
-    },
-    {
-      id: 'law-4',
-      question: 'Public Etiquette & Decorum',
-      answer: 'Never touch a Thai person\'s head (the most sacred part of the body). Do not point your feet at people, monks, or Buddha images (the lowest/dirtiest part). Shirts MUST be worn in public (outside beaches/pools); walking shirtless in cities or shops can attract fines and is considered highly offensive.',
+      id: 'law-2026-3',
+      question: 'Vaping & Monarchy Respect',
+      answer: 'Vaping remains ILLEGAL with severe jail time risks. Respecting the Monarchy is mandatory; never deface money or insult royal imagery. Sunbathing topless is illegal and culturally offensive.',
       category: 'safety'
     }
   ],
   transport: [
     {
-      id: 'trans-1',
-      question: 'Mastering the BTS & MRT',
-      answer: 'Bangkok\'s rail system is the #1 way to avoid traffic. BTS (Skytrain) covers Sukhumvit/Silom. MRT (Subway) connects to Hualamphong and Bang Sue. Note: Tickets are NOT interchangeable; you need separate cards or QR payment for each.',
-      category: 'transport'
-    },
-    {
-      id: 'trans-2',
-      question: 'Grab vs. Bolt vs. Indriver',
-      answer: 'Grab is the most reliable and accepts international cards. Bolt is often 30-40% cheaper but usually requires cash. Indriver allows you to bid for your fare. Recommendation: Use Grab for airport runs for maximum reliability.',
+      id: 'trans-2026-1',
+      question: 'Smart Transport: Grab & Bolt',
+      answer: 'Avoid unmetered taxis. Use Grab (highest safety) or Bolt (cheapest) for all local commutes. For inter-city travel, Suvarnabhumi Airport Limousines are the standard for business travelers.',
       category: 'transport'
     }
   ],
   food: [
     {
-      id: 'food-1',
-      question: 'Ice & Water Safety Protocols',
-      answer: 'Tap water is NOT potable. However, ice (Namแข็ง) in most restaurants and bars is industrially produced and safe (look for tube/cube shapes). Crushed ice at small street stalls is higher risk.',
+      id: 'food-2026-1',
+      question: 'Dining & Street Food Safety',
+      answer: 'Look for the "Michelin Guide" or "Shell Shuan Shim" stickers for guaranteed quality. Street food is safe if high turnover is observed. Never drink tap water; only use bottled or filtered ice.',
       category: 'food'
-    },
+    }
+  ],
+  culture: [
     {
-      id: 'food-2',
-      question: 'Finding Halal & Vegan Centers',
-      answer: 'Bangkok Soi 3 (Sukhumvit) is the primary Halal corridor. For Vegan/Vegetarian travelers, look for the yellow "Jay" (เจ) banners on stalls, especially during the Nine Emperor Gods Festival in October.',
-      category: 'food'
+      id: 'cult-2026-1',
+      question: 'Temple Protocols (Dress Code)',
+      answer: 'Shoulders and knees MUST be covered. Carry a sarong if wearing shorts. Socks are permitted, but shoes must be left outside. Do not point your feet toward Buddha images.',
+      category: 'culture'
     }
   ]
 };

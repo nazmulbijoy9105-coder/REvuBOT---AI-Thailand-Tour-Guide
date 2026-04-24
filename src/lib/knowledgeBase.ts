@@ -144,6 +144,26 @@ export const THAILAND_KNOWLEDGE_BASE: KnowledgeEntry[] = [
     category: "Business & Efficiency Template",
     keywords: ["business trip", "meeting", "conference", "work trip", "executive", "airport lounge"],
     answer: "**Segment Focus:** Punctuality, connectivity, and premium comfort.\n- **Recommended Route:** Sukhumvit/Silom (Bangkok Central Business District).\n- **Lodging:** Standard Chartered/Business Hotels (JW Marriott, Okura) - 5,000-9,000 THB/night.\n- **Transport:** BTS Rabbit Card for traffic bypass; Airport Limousine 서비스.\n- **AI Prompt:** 'Design a 2-day business efficient schedule in Silom with 3 high-end networking cafes and airport fast-track info.'\n- **Perk:** Utilize Suvarnabhumi Miracle Lounges (1,200 THB/entry) for work between flights."
+  },
+  {
+    category: "2025/2026 Vital Updates",
+    keywords: ["tdac", "digital arrival card", "2025", "2026", "mandatory", "arrival rules"],
+    answer: "- **Mandatory TDAC:** From May 1, 2025, all travelers MUST complete the Thailand Digital Arrival Card online 3 days before arrival to avoid entry denial.\n- **Alcohol Ban:** Strict sales prohibition from 2:00 PM – 5:00 PM daily.\n- **Scooter Rules:** Helmet and shirt mandatory. Riding topless or without a helmet results in immediate fines.\n- **Lèse-majesté:** Insulting the monarchy is a serious crime with long prison sentences."
+  },
+  {
+    category: "Visa Options (2026)",
+    keywords: ["visa duration", "single entry", "multiple entry", "visa on arrival", "visa exemption", "dtv", "elite"],
+    answer: "- **Single-Entry Tourist Visa:** 60 days, extendable by 30 days. Valid for 3 months from issue.\n- **Multiple-Entry Tourist Visa:** 6-month validity, 60 days per entry.\n- **Visa Exemption:** 93 countries get 60 days on arrival (extendable by 30).\n- **Visa on Arrival (VoA):** 31 countries, 15-day stay. Fee must be paid in CASH (THB).\n- **DTV Visa:** 5 years, multiple entry, 180 days per stay for remote workers/digital nomads.\n- **Thai Elite:** Long-term stay options for 5, 10, or 20 years with premium perks."
+  },
+  {
+    category: "Taxes & VAT Refund",
+    keywords: ["tax", "vat", "refund", "foreigner tax", "tourist tax", "300 baht"],
+    answer: "- **VAT (7%):** Included in consumer goods. Tourists can claim a refund on purchases over 2,000 THB at participating stores.\n- **Tourist Tax (2025):** 300 THB for air arrivals, 150 THB for land/sea. Funds used for infrastructure and over-tourism management.\n- **Personal Income Tax:** Foreigners staying 180+ days are considered tax residents."
+  },
+  {
+    category: "Top Destinations (2026)",
+    keywords: ["destinations", "bangkok", "chiang mai", "phuket", "pattaya", "moo deng", "chon buri"],
+    answer: "- **Bangkok:** The capital of culture, nightlife, and shopping (Iconsiam, Grand Palace).\n- **Chiang Mai:** Northern mountains and ethical elephant sanctuaries.\n- **Phuket/Krabi:** Beach paradises and island hopping (Phi Phi, Maya Bay).\n- **Moo Deng Experience:** Visit the viral hippo at Khao Kheow Open Zoo in Chonburi (Near Chon Buri/Pattaya).\n- **Ubon Ratchathani:** Famed for its Candle Festival and nature."
   }
 ];
 
