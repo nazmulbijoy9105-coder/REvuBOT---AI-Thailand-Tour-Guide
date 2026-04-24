@@ -5,15 +5,14 @@ import cors from "cors";
 import "dotenv/config";
 import { GoogleGenAI } from "@google/genai";
 
+import { findLocalAnswer } from "./src/lib/knowledgeBase";
+
 // Standardized DevOps Logger
 const logger = {
   info: (msg: string, metadata?: any) => console.log(`[INFO] [${new Date().toISOString()}] ${msg}`, metadata || ""),
   warn: (msg: string, metadata?: any) => console.warn(`[WARN] [${new Date().toISOString()}] ${msg}`, metadata || ""),
   error: (msg: string, metadata?: any) => console.error(`[ERROR] [${new Date().toISOString()}] ${msg}`, metadata || ""),
 };
-
-// Note: Environment variables like GEMINI_API_KEY are managed by AI Studio.
-// Grok API Key can be added to Secrets and accessed via process.env.GROK_API_KEY.
 
 async function startServer() {
   const app = express();
@@ -32,7 +31,6 @@ async function startServer() {
     });
   });
 
-  // Proxy for AI Chat to hide keys if necessary, or manage Grok integration
   app.post("/api/chat", async (req, res) => {
     const rawGeminiKey = (process.env.GEMINI_API_KEY || "").trim();
     const rawGrokKey = (process.env.GROK_API_KEY || "").trim();
@@ -44,6 +42,13 @@ async function startServer() {
     const { message, history, language, imageData, mimeType, engine = "gemini" } = req.body;
 
     logger.info(`Chat Request Received. Engine: ${engine}, GeminiKey: ${geminiKey ? "VALIDATED" : "MISSING"}, GrokKey: ${grokKey ? "VALIDATED" : "MISSING"}`);
+
+    // LOCAL KNOWLEDGE BASE CHECK (User priority & Offline Support)
+    const localAnswer = findLocalAnswer(message);
+    if (localAnswer && !geminiKey && !grokKey) {
+      logger.info("Serving Local Knowledge Answer (Offline Mode)");
+      return res.status(200).send(localAnswer);
+    }
 
     try {
       // 1. Gemini Implementation (Default)
@@ -68,7 +73,7 @@ async function startServer() {
         ];
 
         const streamingResult = await ai.models.generateContentStream({ 
-          model: "gemini-3-flash-preview",
+          model: "gemini-1.5-flash",
           contents,
           config: {
             systemInstruction: `You are REvuBOT, the elite Thailand AI Tour Guide and Autonomous Travel Agent.
@@ -185,6 +190,13 @@ async function startServer() {
       if (errorMsg.includes("api key not valid") || errorMsg.includes("api_key_invalid") || errorMsg.includes("invalid api key")) {
         clientError = "INVALID API KEY: The Gemini API Key provided is rejected by Google. Please check your AI Studio Settings and ensure GEMINI_API_KEY is correct.";
         statusCode = 401;
+
+        // Try to provide a local answer instead of just returning an error if headers haven't been sent
+        const offlineAnswer = findLocalAnswer(message);
+        if (offlineAnswer && !res.headersSent) {
+           logger.info("Serving Local Knowledge Answer as Fallback due to API Error");
+           return res.status(200).send(offlineAnswer);
+        }
       } else if (errorMsg.includes("quota") || errorMsg.includes("limit") || errorMsg.includes("429")) {
         clientError = "BANDS SATURATED: Neural quota exceeded. (Google API Quota reached)";
         statusCode = 429;
