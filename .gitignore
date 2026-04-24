@@ -73,3 +73,25 @@ download/
 
 # Mini services
 mini-services/
+
+# Old React/Vite project files (legacy)
+src/App.tsx
+src/main.tsx
+src/index.css
+src/pages/
+src/lib/firebase.ts
+src/lib/ai.ts
+src/lib/knowledgeBase.ts
+src/components/CommandPalette.tsx
+src/components/FeedbackModal.tsx
+src/components/Layout.tsx
+api/chat.ts
+server.ts
+vite.config.ts
+vercel.json
+index.html
+firestore.rules
+firebase-applet-config.json
+firebase-blueprint.json
+metadata.json
+package-lock.json
