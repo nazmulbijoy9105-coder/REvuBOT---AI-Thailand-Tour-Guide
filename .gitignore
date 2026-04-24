@@ -57,11 +57,19 @@ server.log
 db/*.db
 db/*.db-journal
 
-# Z scripts temp files
-.zscripts/dev.pid
+# Z scripts
+.zscripts/
 
 # Agent context
 agent-ctx/
 
 # Worklog
 worklog.md
+
+# Internal tools
+Caddyfile
+examples/
+download/
+
+# Mini services
+mini-services/
