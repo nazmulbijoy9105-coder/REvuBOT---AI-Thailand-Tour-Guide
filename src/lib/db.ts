@@ -1,65 +1,82 @@
 import { memoryDb } from './db-fallback';
 
-// Check if Prisma/SQLite is available
-let prismaAvailable = false;
+// Detect if we're in a serverless environment where SQLite won't work
+const isServerless = !!(
+  process.env.VERCEL ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.NETLIFY ||
+  process.env.CF_PAGES
+);
+
+// Only try Prisma if we're NOT in a serverless environment
+let prismaAvailable = !isServerless;
 let prismaModule: any = null;
 
-try {
-  // Dynamic require for Prisma - will fail gracefully if not available
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { PrismaClient } = require('@prisma/client');
-  prismaModule = new PrismaClient({ log: [] });
-  prismaAvailable = true;
-} catch {
-  prismaAvailable = false;
+if (prismaAvailable) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { PrismaClient } = require('@prisma/client');
+    prismaModule = new PrismaClient({ log: [] });
+
+    const globalForPrisma = globalThis as unknown as {
+      prisma: any | undefined;
+    };
+
+    if (process.env.NODE_ENV !== 'production') {
+      globalForPrisma.prisma = globalForPrisma.prisma ?? prismaModule;
+      prismaModule = globalForPrisma.prisma;
+    }
+  } catch {
+    prismaAvailable = false;
+  }
 }
 
-// Wrap db with fallback: tries Prisma first, falls back to in-memory on error
-function withFallback(prismaObj: any, memoryObj: any): any {
-  return new Proxy(memoryObj, {
-    get(target, prop) {
-      if (prismaAvailable && prismaObj && prismaObj[prop]) {
-        const original = prismaObj[prop];
-        if (typeof original === 'object' && original !== null) {
-          return withFallback(original, target[prop as string]);
-        }
-        if (typeof original === 'function') {
-          return async (...args: any[]) => {
-            try {
-              return await original.apply(prismaObj, args);
-            } catch (err) {
-              console.warn(`Prisma failed, using memory fallback:`, (err as Error).message);
-              prismaAvailable = false;
-              const memoryFn = target[prop as string];
-              if (typeof memoryFn === 'function') {
-                return await memoryFn.apply(target, args);
-              }
-              throw err;
-            }
-          };
-        }
-        return original;
+// Create a db object that matches Prisma's API shape using memoryDb
+// This ensures consistent API regardless of which backend is used
+const memoryDbAdapter = {
+  chatSession: {
+    findMany: async (opts?: any) => {
+      let results = await memoryDb.session.findMany();
+      // Support include.messages
+      if (opts?.include?.messages) {
+        results = results.map(s => ({ ...s, messages: s.messages || [] }));
       }
-
-      const value = target[prop as string];
-      if (typeof value === 'function') {
-        return value.bind(target);
-      }
-      return value;
+      return results;
     },
-  });
-}
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: any | undefined;
+    findUnique: async (opts: any) => {
+      const result = await memoryDb.session.findUnique({ where: opts.where });
+      if (result && opts?.include?.messages) {
+        return { ...result, messages: await memoryDb.message.findMany({ where: { sessionId: result.id } }) };
+      }
+      return result;
+    },
+    create: async (opts: any) => {
+      return memoryDb.session.create({ data: opts.data });
+    },
+    update: async (opts: any) => {
+      return memoryDb.session.update({ where: opts.where, data: opts.data });
+    },
+    delete: async (opts: any) => {
+      // Delete messages first
+      await memoryDb.message.deleteMany({ where: { sessionId: opts.where.id } });
+      return memoryDb.session.delete({ where: opts.where });
+    },
+  },
+  message: {
+    findMany: async (opts: any) => {
+      return memoryDb.message.findMany({ where: opts.where, orderBy: opts.orderBy });
+    },
+    count: async (opts: any) => {
+      return memoryDb.message.count({ where: opts.where });
+    },
+    create: async (opts: any) => {
+      return memoryDb.message.create({ data: opts.data });
+    },
+    deleteMany: async (opts: any) => {
+      return memoryDb.message.deleteMany({ where: opts.where });
+    },
+  },
 };
 
-const prisma = prismaAvailable ? (globalForPrisma.prisma ?? prismaModule) : null;
-
-if (prismaAvailable && process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
-
-export const db = prismaAvailable && prisma
-  ? withFallback(prisma, memoryDb)
-  : memoryDb;
+// Export the appropriate db based on environment
+export const db = prismaAvailable && prismaModule ? prismaModule : memoryDbAdapter;
