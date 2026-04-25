@@ -19,20 +19,33 @@ interface MessageRecord {
   createdAt: string;
 }
 
+interface FeedbackRecord {
+  id: string;
+  category: string;
+  message: string;
+  createdAt: string;
+}
+
 // Global in-memory store (persists across requests in the same serverless instance)
 const globalForDb = globalThis as unknown as {
   memorySessions: Map<string, SessionRecord> | undefined;
   memoryMessages: Map<string, MessageRecord> | undefined;
+  memoryFeedbacks: Map<string, FeedbackRecord> | undefined;
   messageCounter: number | undefined;
+  feedbackCounter: number | undefined;
 };
 
 const sessions = globalForDb.memorySessions ?? new Map<string, SessionRecord>();
 const messages = globalForDb.memoryMessages ?? new Map<string, MessageRecord>();
+const feedbacks = globalForDb.memoryFeedbacks ?? new Map<string, FeedbackRecord>();
 let messageCounter = globalForDb.messageCounter ?? 0;
+let feedbackCounter = globalForDb.feedbackCounter ?? 0;
 
 globalForDb.memorySessions = sessions;
 globalForDb.memoryMessages = messages;
+globalForDb.memoryFeedbacks = feedbacks;
 globalForDb.messageCounter = messageCounter;
+globalForDb.feedbackCounter = feedbackCounter;
 
 function genId(): string {
   return `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -62,11 +75,12 @@ export const memoryDb = {
       sessions.set(record.id, record);
       return record;
     },
-    update: async ({ where, data }: { where: { id: string }; data: { title?: string } }): Promise<SessionRecord> => {
+    update: async ({ where, data }: { where: { id: string }; data: { title?: string; updatedAt?: string } }): Promise<SessionRecord> => {
       const record = sessions.get(where.id);
       if (!record) throw new Error('Session not found');
       if (data.title) record.title = data.title;
-      record.updatedAt = new Date().toISOString();
+      if (data.updatedAt) record.updatedAt = data.updatedAt;
+      else record.updatedAt = new Date().toISOString();
       sessions.set(where.id, record);
       return record;
     },
@@ -121,6 +135,19 @@ export const memoryDb = {
           messages.delete(key);
         }
       }
+    },
+  },
+  feedback: {
+    create: async ({ data }: { data: { category: string; message: string } }): Promise<FeedbackRecord> => {
+      feedbackCounter++;
+      const record: FeedbackRecord = {
+        id: `fb_${feedbackCounter}`,
+        category: data.category,
+        message: data.message,
+        createdAt: new Date().toISOString(),
+      };
+      feedbacks.set(record.id, record);
+      return record;
     },
   },
 };

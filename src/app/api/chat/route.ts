@@ -32,14 +32,41 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Ensure the session exists — auto-create if missing (e.g. planner sessions)
+    let session = await db.chatSession.findUnique({ where: { id: sessionId } });
+    if (!session) {
+      try {
+        session = await db.chatSession.create({
+          data: {
+            id: sessionId,
+            title: message.length > 40 ? message.substring(0, 40) + '...' : message,
+            travelMode: travelMode || 'solo',
+            language: 'en',
+          },
+        });
+      } catch (createErr) {
+        // If ID format is invalid for Prisma (e.g. planner-1234), generate a valid one
+        console.warn('Session auto-create failed, using generated ID:', createErr);
+        session = await db.chatSession.create({
+          data: {
+            title: message.length > 40 ? message.substring(0, 40) + '...' : message,
+            travelMode: travelMode || 'solo',
+            language: 'en',
+          },
+        });
+      }
+    }
+
+    const effectiveSessionId = session.id;
+
     // Save user message to DB
     await db.message.create({
-      data: { sessionId, role: 'user', content: message },
+      data: { sessionId: effectiveSessionId, role: 'user', content: message },
     });
 
     // Get conversation history
-    const messages = await db.message.findMany({
-      where: { sessionId },
+    const dbMessages = await db.message.findMany({
+      where: { sessionId: effectiveSessionId },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -49,7 +76,7 @@ export async function POST(req: NextRequest) {
 
     const llmMessages = [
       { role: 'assistant' as const, content: systemPrompt },
-      ...messages.map((m) => ({
+      ...dbMessages.map((m: any) => ({
         role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
         content: m.content,
       })),
@@ -80,21 +107,24 @@ export async function POST(req: NextRequest) {
           // Save to DB first
           fullResponse = responseText;
           await db.message.create({
-            data: { sessionId, role: 'assistant', content: fullResponse },
+            data: { sessionId: effectiveSessionId, role: 'assistant', content: fullResponse },
           });
 
           // Update session title if first message
-          const messageCount = await db.message.count({ where: { sessionId } });
+          const messageCount = await db.message.count({ where: { sessionId: effectiveSessionId } });
           if (messageCount <= 2) {
             const title = message.length > 40 ? message.substring(0, 40) + '...' : message;
-            await db.chatSession.update({
-              where: { id: sessionId },
-              data: { title },
-            });
+            try {
+              await db.chatSession.update({
+                where: { id: effectiveSessionId },
+                data: { title },
+              });
+            } catch {
+              // Ignore update errors
+            }
           }
 
           // Stream the response in chunks for a better UX
-          // Split into small chunks (by spaces, ~3-5 words per chunk)
           const words = responseText.split(' ');
           const chunkSize = 3;
           let isFirst = true;
@@ -112,7 +142,7 @@ export async function POST(req: NextRequest) {
               break;
             }
 
-            // Small delay for streaming effect (faster than before)
+            // Small delay for streaming effect
             await new Promise((resolve) => setTimeout(resolve, 15));
           }
 
@@ -133,7 +163,7 @@ export async function POST(req: NextRequest) {
           // Try to save error response to DB
           try {
             await db.message.create({
-              data: { sessionId, role: 'assistant', content: errorMsg },
+              data: { sessionId: effectiveSessionId, role: 'assistant', content: errorMsg },
             });
           } catch {
             // DB error - ignore

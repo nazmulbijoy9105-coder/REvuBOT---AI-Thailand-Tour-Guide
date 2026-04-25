@@ -12,10 +12,12 @@ export async function GET() {
         },
       },
     });
-    return NextResponse.json(sessions);
+    // Always ensure we return an array
+    return NextResponse.json(Array.isArray(sessions) ? sessions : []);
   } catch (error) {
     console.error('Failed to fetch sessions:', error);
-    return NextResponse.json({ error: 'Failed to fetch sessions' }, { status: 500 });
+    // Return empty array instead of error object to prevent "e.filter is not a function"
+    return NextResponse.json([]);
   }
 }
 

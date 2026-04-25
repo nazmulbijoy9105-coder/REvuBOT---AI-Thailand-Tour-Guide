@@ -66,7 +66,26 @@ Include day-by-day schedule with:
 
 Format as markdown with headers for each day.`;
 
-    const sessionId = `planner-${Date.now()}`;
+    // Create a proper session first
+    let sessionId = '';
+    try {
+      const sessionRes = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `${destination} ${duration}-Day ${vibe} Trip`,
+          travelMode: groupSize.toLowerCase() === 'business' ? 'business' : groupSize.toLowerCase(),
+          language: 'en',
+        }),
+      });
+      if (!sessionRes.ok) throw new Error('Failed to create session');
+      const sessionData = await sessionRes.json();
+      sessionId = sessionData.id;
+    } catch {
+      setResult('⚠️ Failed to initialize. Please try again.');
+      setIsGenerating(false);
+      return;
+    }
 
     abortRef.current = new AbortController();
 
