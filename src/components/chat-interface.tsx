@@ -364,9 +364,11 @@ export function ChatInterface() {
     try {
       const res = await fetch('/api/sessions');
       const data = await res.json();
-      setSessions(data);
+      // Safety: ensure data is always an array
+      setSessions(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to load sessions:', err);
+      setSessions([]);
     }
   };
 
@@ -411,8 +413,10 @@ export function ChatInterface() {
     try {
       const res = await fetch(`/api/sessions/${sessionId}`);
       const session = await res.json();
-      setCurrentSession(session);
-      setMessages(session.messages || []);
+      if (session && !session.error) {
+        setCurrentSession(session);
+        setMessages(Array.isArray(session.messages) ? session.messages : []);
+      }
       setStreamingContent('');
     } catch (err) {
       console.error('Failed to load session:', err);

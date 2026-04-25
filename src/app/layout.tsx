@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   keywords: ["Thailand", "Travel Guide", "AI Chatbot", "Bangkok", "Phuket", "Chiang Mai", "Thai Tourism", "Beach Guide", "Hotel Booking"],
   authors: [{ name: "REvuBOT AI" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/favicon.svg",
   },
   openGraph: {
     title: "REvuBOT - AI Thailand Tour Guide",
