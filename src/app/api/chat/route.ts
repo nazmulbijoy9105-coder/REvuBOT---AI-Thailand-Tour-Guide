@@ -2,6 +2,18 @@ import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { thailandSystemPrompt } from '@/data/thailand-data';
 
+type AgentDebugPayload = {
+  runId: string;
+  hypothesisId: string;
+  location: string;
+  message: string;
+  data: Record<string, unknown>;
+};
+
+function agentDebugLog(payload: AgentDebugPayload) {
+  fetch('http://127.0.0.1:7692/ingest/546afc5a-ad75-410d-afea-f935f43c38f1', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '16a81d' }, body: JSON.stringify({ sessionId: '16a81d', ...payload, timestamp: Date.now() }) }).catch(() => {});
+}
+
 const TRAVEL_MODE_PROMPTS: Record<string, string> = {
   solo: "The user is traveling SOLO. Focus on budget-friendly options, social hostels, solo-friendly activities, safety tips for solo travelers, and places to meet other travelers.",
   couple: "The user is traveling as a COUPLE. Focus on romantic spots, sunset dining, couple-friendly hotels, private tours, and intimate experiences.",
@@ -26,6 +38,23 @@ async function callLLM(messages: Array<{ role: string; content: string }>): Prom
   const baseUrl = process.env.OPENAI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai';
   const model = process.env.LLM_MODEL || 'gemini-2.0-flash';
 
+  // #region agent log
+  agentDebugLog({
+    runId: 'initial',
+    hypothesisId: 'C',
+    location: 'src/app/api/chat/route.ts:callLLM:before-fetch',
+    message: 'LLM request configuration',
+    data: {
+      hasGeminiKey: Boolean(apiKey),
+      hasOpenAIBaseUrlEnv: Boolean(process.env.OPENAI_BASE_URL),
+      hasModelEnv: Boolean(process.env.LLM_MODEL),
+      baseUrlEndsWithSlash: baseUrl.endsWith('/'),
+      modelLength: model.length,
+      messageCount: messages.length,
+    },
+  });
+  // #endregion
+
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -35,18 +64,71 @@ async function callLLM(messages: Array<{ role: string; content: string }>): Prom
     body: JSON.stringify({ model, messages }),
   });
 
+  // #region agent log
+  agentDebugLog({
+    runId: 'initial',
+    hypothesisId: 'C,D',
+    location: 'src/app/api/chat/route.ts:callLLM:after-fetch',
+    message: 'LLM response status',
+    data: {
+      ok: response.ok,
+      status: response.status,
+      contentType: response.headers.get('content-type'),
+    },
+  });
+  // #endregion
+
   if (!response.ok) {
     const errorBody = await response.text();
+    // #region agent log
+    agentDebugLog({
+      runId: 'initial',
+      hypothesisId: 'D',
+      location: 'src/app/api/chat/route.ts:callLLM:error-response',
+      message: 'LLM returned non-OK response',
+      data: {
+        status: response.status,
+        bodyPreview: errorBody.slice(0, 180),
+      },
+    });
+    // #endregion
     throw new Error(`LLM API failed (${response.status}): ${errorBody.slice(0, 200)}`);
   }
 
   const data = await response.json();
+  // #region agent log
+  agentDebugLog({
+    runId: 'initial',
+    hypothesisId: 'D',
+    location: 'src/app/api/chat/route.ts:callLLM:parsed-response',
+    message: 'LLM response parsed',
+    data: {
+      choiceCount: Array.isArray(data.choices) ? data.choices.length : 0,
+      contentLength: data.choices?.[0]?.message?.content?.length ?? 0,
+    },
+  });
+  // #endregion
   return data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response. Please try again.';
 }
 
 export async function POST(req: NextRequest) {
   try {
     const { message, sessionId, travelMode = 'solo' } = await req.json();
+
+    // #region agent log
+    agentDebugLog({
+      runId: 'initial',
+      hypothesisId: 'A',
+      location: 'src/app/api/chat/route.ts:POST:request',
+      message: 'Chat API received request',
+      data: {
+        hasMessage: Boolean(message),
+        messageLength: typeof message === 'string' ? message.length : 0,
+        hasSessionId: Boolean(sessionId),
+        travelMode,
+      },
+    });
+    // #endregion
 
     if (!message || !sessionId) {
       return new Response(JSON.stringify({ error: 'Message and sessionId are required' }), {
@@ -103,6 +185,21 @@ export async function POST(req: NextRequest) {
       ? [llmMessages[0], ...llmMessages.slice(-21)]
       : llmMessages;
 
+    // #region agent log
+    agentDebugLog({
+      runId: 'initial',
+      hypothesisId: 'B',
+      location: 'src/app/api/chat/route.ts:POST:before-stream',
+      message: 'Session and messages prepared',
+      data: {
+        foundOrCreatedSession: Boolean(session),
+        effectiveSessionIdChanged: effectiveSessionId !== sessionId,
+        dbMessageCount: dbMessages.length,
+        trimmedMessageCount: trimmedMessages.length,
+      },
+    });
+    // #endregion
+
     const encoder = new TextEncoder();
     let fullResponse = '';
     let clientConnected = true;
@@ -131,6 +228,7 @@ export async function POST(req: NextRequest) {
           const words = responseText.split(' ');
           const chunkSize = 3;
           let isFirst = true;
+          let chunksSent = 0;
 
           for (let i = 0; i < words.length; i += chunkSize) {
             if (!clientConnected) break;
@@ -139,6 +237,7 @@ export async function POST(req: NextRequest) {
             isFirst = false;
             const ok = safeEnqueue(controller, encoder, 'data: ' + data + '\n\n');
             if (!ok) { clientConnected = false; break; }
+            chunksSent += 1;
             await new Promise((resolve) => setTimeout(resolve, 15));
           }
 
@@ -146,9 +245,35 @@ export async function POST(req: NextRequest) {
             safeEnqueue(controller, encoder, 'data: ' + JSON.stringify({ done: true, fullResponse }) + '\n\n');
           }
 
+          // #region agent log
+          agentDebugLog({
+            runId: 'initial',
+            hypothesisId: 'E',
+            location: 'src/app/api/chat/route.ts:stream:complete',
+            message: 'Chat stream completed',
+            data: {
+              clientConnected,
+              responseLength: fullResponse.length,
+              chunksSent,
+            },
+          });
+          // #endregion
+
           try { controller.close(); } catch { /* */ }
         } catch (error: any) {
           console.error('[REvuBOT] Streaming error:', error?.message || error);
+          // #region agent log
+          agentDebugLog({
+            runId: 'initial',
+            hypothesisId: 'B,D',
+            location: 'src/app/api/chat/route.ts:stream:error',
+            message: 'Chat stream failed',
+            data: {
+              errorMessage: error?.message || String(error),
+              responseLength: fullResponse.length,
+            },
+          });
+          // #endregion
           const errorMsg = "I'm having trouble connecting right now. Please try again in a moment. 🙏";
 
           try {

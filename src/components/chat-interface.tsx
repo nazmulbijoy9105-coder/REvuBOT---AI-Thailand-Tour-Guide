@@ -61,6 +61,18 @@ interface Session {
 type TravelMode = 'solo' | 'couple' | 'family' | 'corporate' | 'business';
 type Language = 'en' | 'th' | 'hi' | 'si' | 'bn';
 
+type AgentDebugPayload = {
+  runId: string;
+  hypothesisId: string;
+  location: string;
+  message: string;
+  data: Record<string, unknown>;
+};
+
+function agentDebugLog(payload: AgentDebugPayload) {
+  fetch('http://127.0.0.1:7692/ingest/546afc5a-ad75-410d-afea-f935f43c38f1', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '16a81d' }, body: JSON.stringify({ sessionId: '16a81d', ...payload, timestamp: Date.now() }) }).catch(() => {});
+}
+
 const TRAVEL_MODES: { value: TravelMode; label: string }[] = [
   { value: 'solo', label: 'SOLO' },
   { value: 'couple', label: 'COUPLE' },
@@ -467,6 +479,20 @@ export function ChatInterface() {
     resetTextarea();
 
     try {
+      // #region agent log
+      agentDebugLog({
+        runId: 'initial',
+        hypothesisId: 'A',
+        location: 'src/components/chat-interface.tsx:sendMessage:before-fetch',
+        message: 'Client sending chat request',
+        data: {
+          messageLength: text.length,
+          hasSession: Boolean(session?.id),
+          travelMode,
+        },
+      });
+      // #endregion
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -477,6 +503,21 @@ export function ChatInterface() {
         }),
       });
 
+      // #region agent log
+      agentDebugLog({
+        runId: 'initial',
+        hypothesisId: 'A,E',
+        location: 'src/components/chat-interface.tsx:sendMessage:after-fetch',
+        message: 'Client received chat response headers',
+        data: {
+          ok: res.ok,
+          status: res.status,
+          hasBody: Boolean(res.body),
+          contentType: res.headers.get('content-type'),
+        },
+      });
+      // #endregion
+
       if (!res.ok) throw new Error('Chat request failed');
 
       const reader = res.body?.getReader();
@@ -484,12 +525,15 @@ export function ChatInterface() {
 
       const decoder = new TextDecoder();
       let fullText = '';
+      let chunkCount = 0;
+      let parseErrorCount = 0;
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
+        chunkCount += 1;
         const lines = chunk.split('\n');
 
         for (const line of lines) {
@@ -512,15 +556,41 @@ export function ChatInterface() {
                 setStreamingContent(fullText);
               }
             } catch {
+              parseErrorCount += 1;
               // Ignore parse errors
             }
           }
         }
       }
 
+      // #region agent log
+      agentDebugLog({
+        runId: 'initial',
+        hypothesisId: 'E',
+        location: 'src/components/chat-interface.tsx:sendMessage:stream-complete',
+        message: 'Client stream consumed',
+        data: {
+          chunkCount,
+          parseErrorCount,
+          fullTextLength: fullText.length,
+        },
+      });
+      // #endregion
+
       loadSessions();
     } catch (err) {
       console.error('Send message error:', err);
+      // #region agent log
+      agentDebugLog({
+        runId: 'initial',
+        hypothesisId: 'A,E',
+        location: 'src/components/chat-interface.tsx:sendMessage:error',
+        message: 'Client chat request failed',
+        data: {
+          errorMessage: err instanceof Error ? err.message : String(err),
+        },
+      });
+      // #endregion
       const errorMessage: Message = {
         id: `err-${Date.now()}`,
         role: 'assistant',
