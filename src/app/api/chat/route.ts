@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import ZAI from 'z-ai-web-dev-sdk';
 import { thailandSystemPrompt } from '@/data/thailand-data';
 
 const TRAVEL_MODE_PROMPTS: Record<string, string> = {
@@ -16,9 +15,130 @@ function safeEnqueue(controller: ReadableStreamDefaultController, encoder: TextE
     controller.enqueue(encoder.encode(data));
     return true;
   } catch {
-    // Controller already closed (client disconnected)
     return false;
   }
+}
+
+// LLM Configuration - supports multiple providers via environment variables
+interface LLMConfig {
+  baseUrl: string;
+  apiKey: string;
+  model?: string;
+  extraHeaders: Record<string, string>;
+}
+
+let cachedConfig: LLMConfig | null = null;
+
+async function getLLMConfig(): Promise<LLMConfig | null> {
+  if (cachedConfig) return cachedConfig;
+
+  // Option 1: Use OPENAI_API_KEY + OPENAI_BASE_URL (standard OpenAI-compatible)
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const openaiBaseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+  if (openaiKey) {
+    cachedConfig = {
+      baseUrl: openaiBaseUrl,
+      apiKey: openaiKey,
+      model: process.env.LLM_MODEL || 'gpt-3.5-turbo',
+      extraHeaders: {},
+    };
+    return cachedConfig;
+  }
+
+  // Option 2: Use ZAI_* env vars (Z-AI SDK format)
+  const zaiBaseUrl = process.env.ZAI_BASE_URL;
+  const zaiApiKey = process.env.ZAI_API_KEY;
+  if (zaiBaseUrl && zaiApiKey) {
+    cachedConfig = {
+      baseUrl: zaiBaseUrl,
+      apiKey: zaiApiKey,
+      model: process.env.LLM_MODEL,
+      extraHeaders: {
+        'X-Z-AI-From': 'Z',
+        ...(process.env.ZAI_CHAT_ID ? { 'X-Chat-Id': process.env.ZAI_CHAT_ID } : {}),
+        ...(process.env.ZAI_USER_ID ? { 'X-User-Id': process.env.ZAI_USER_ID } : {}),
+        ...(process.env.ZAI_TOKEN ? { 'X-Token': process.env.ZAI_TOKEN } : {}),
+      },
+    };
+    return cachedConfig;
+  }
+
+  // Option 3: Try reading .z-ai-config file (for local dev)
+  try {
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const os = await import('os');
+
+    const configPaths = [
+      path.join(process.cwd(), '.z-ai-config'),
+      path.join(os.homedir(), '.z-ai-config'),
+      '/etc/.z-ai-config',
+    ];
+
+    for (const filePath of configPaths) {
+      try {
+        const configStr = await fs.readFile(filePath, 'utf-8');
+        const config = JSON.parse(configStr);
+        if (config.baseUrl && config.apiKey) {
+          cachedConfig = {
+            baseUrl: config.baseUrl,
+            apiKey: config.apiKey,
+            model: config.model,
+            extraHeaders: {
+              'X-Z-AI-From': 'Z',
+              ...(config.chatId ? { 'X-Chat-Id': config.chatId } : {}),
+              ...(config.userId ? { 'X-User-Id': config.userId } : {}),
+              ...(config.token ? { 'X-Token': config.token } : {}),
+            },
+          };
+          return cachedConfig;
+        }
+      } catch {
+        // Continue to next path
+      }
+    }
+  } catch {
+    // fs not available
+  }
+
+  return null;
+}
+
+// Call LLM API (OpenAI-compatible format)
+async function callLLM(messages: Array<{ role: string; content: string }>) {
+  const config = await getLLMConfig();
+  if (!config) {
+    throw new Error('LLM not configured. Set OPENAI_API_KEY or ZAI_BASE_URL+ZAI_API_KEY env vars.');
+  }
+
+  const url = `${config.baseUrl}/chat/completions`;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${config.apiKey}`,
+    ...config.extraHeaders,
+  };
+
+  const body: Record<string, any> = {
+    messages,
+    thinking: { type: 'disabled' },
+  };
+  if (config.model) {
+    body.model = config.model;
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`LLM API failed (${response.status}): ${errorBody.slice(0, 200)}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response. Please try again.';
 }
 
 export async function POST(req: NextRequest) {
@@ -32,7 +152,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Ensure the session exists — auto-create if missing (e.g. planner sessions)
+    // Ensure the session exists — auto-create if missing
     let session = await db.chatSession.findUnique({ where: { id: sessionId } });
     if (!session) {
       try {
@@ -44,9 +164,7 @@ export async function POST(req: NextRequest) {
             language: 'en',
           },
         });
-      } catch (createErr) {
-        // If ID format is invalid for Prisma (e.g. planner-1234), generate a valid one
-        console.warn('Session auto-create failed, using generated ID:', createErr);
+      } catch {
         session = await db.chatSession.create({
           data: {
             title: message.length > 40 ? message.substring(0, 40) + '...' : message,
@@ -87,9 +205,6 @@ export async function POST(req: NextRequest) {
       ? [llmMessages[0], ...llmMessages.slice(-21)]
       : llmMessages;
 
-    // Create streaming response
-    const zai = await ZAI.create();
-
     const encoder = new TextEncoder();
     let fullResponse = '';
     let clientConnected = true;
@@ -97,14 +212,9 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const completion = await zai.chat.completions.create({
-            messages: trimmedMessages,
-            thinking: { type: 'disabled' },
-          });
+          const responseText = await callLLM(trimmedMessages);
 
-          const responseText = completion.choices[0]?.message?.content || 'I apologize, I could not generate a response. Please try again.';
-
-          // Save to DB first
+          // Save to DB
           fullResponse = responseText;
           await db.message.create({
             data: { sessionId: effectiveSessionId, role: 'assistant', content: fullResponse },
@@ -120,11 +230,11 @@ export async function POST(req: NextRequest) {
                 data: { title },
               });
             } catch {
-              // Ignore update errors
+              // Ignore
             }
           }
 
-          // Stream the response in chunks for a better UX
+          // Stream the response in chunks
           const words = responseText.split(' ');
           const chunkSize = 3;
           let isFirst = true;
@@ -142,41 +252,28 @@ export async function POST(req: NextRequest) {
               break;
             }
 
-            // Small delay for streaming effect
             await new Promise((resolve) => setTimeout(resolve, 15));
           }
 
-          // Send done signal
           if (clientConnected) {
             safeEnqueue(controller, encoder, 'data: ' + JSON.stringify({ done: true, fullResponse }) + '\n\n');
           }
 
-          try {
-            controller.close();
-          } catch {
-            // Already closed
-          }
+          try { controller.close(); } catch { /* */ }
         } catch (error) {
           console.error('Streaming error:', error);
           const errorMsg = "I'm having trouble connecting right now. Please try again in a moment. 🙏";
 
-          // Try to save error response to DB
           try {
             await db.message.create({
               data: { sessionId: effectiveSessionId, role: 'assistant', content: errorMsg },
             });
-          } catch {
-            // DB error - ignore
-          }
+          } catch { /* */ }
 
           safeEnqueue(controller, encoder, 'data: ' + JSON.stringify({ content: errorMsg, done: false, isFirst: true }) + '\n\n');
           safeEnqueue(controller, encoder, 'data: ' + JSON.stringify({ done: true, fullResponse: errorMsg }) + '\n\n');
 
-          try {
-            controller.close();
-          } catch {
-            // Already closed
-          }
+          try { controller.close(); } catch { /* */ }
         }
       },
       cancel() {
@@ -193,12 +290,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Chat API error:', error);
-    const errorInfo = {
+    return new Response(JSON.stringify({
       error: 'Internal server error',
       details: error?.message || String(error),
-      stack: error?.stack?.split('\n').slice(0, 3).join(' | '),
-    };
-    return new Response(JSON.stringify(errorInfo), {
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
