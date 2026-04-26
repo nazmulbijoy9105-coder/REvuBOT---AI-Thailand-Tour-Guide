@@ -487,6 +487,22 @@ export function ChatInterface() {
     setStreamingContent('');
     resetTextarea();
 
+    const chatPayload = {
+      message: text,
+      sessionId: session!.id,
+      travelMode,
+      responseFormat: 'json',
+    };
+
+    const fetchJsonChat = () => fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(chatPayload),
+    });
+
     try {
       // #region agent log
       agentDebugLog({
@@ -502,19 +518,7 @@ export function ChatInterface() {
       });
       // #endregion
 
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          message: text,
-          sessionId: session!.id,
-          travelMode,
-          responseFormat: 'json',
-        }),
-      });
+      const res = await fetchJsonChat();
 
       // #region agent log
       agentDebugLog({
@@ -642,6 +646,26 @@ export function ChatInterface() {
         },
       });
       // #endregion
+      try {
+        const retryRes = await fetchJsonChat();
+        if (retryRes.ok && retryRes.headers.get('content-type')?.includes('application/json')) {
+          const data = await retryRes.json();
+          const retryMessage: Message = {
+            id: `msg-${Date.now()}`,
+            role: 'assistant',
+            content: data.content || "I'm having trouble connecting right now. Please try again in a moment. 🙏",
+            createdAt: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, retryMessage]);
+          setStreamingContent('');
+          setIsStreaming(false);
+          loadSessions();
+          return;
+        }
+      } catch {
+        // Fall through to the visible error message below.
+      }
+
       const errorMessage: Message = {
         id: `err-${Date.now()}`,
         role: 'assistant',
