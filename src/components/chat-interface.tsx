@@ -774,18 +774,19 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] bg-slate-50 relative overflow-hidden">
+    <div className="flex h-[calc(100vh-3.5rem)] bg-[radial-gradient(circle_at_top_left,#fef3c7_0,#f8fafc_28%,#e2e8f0_100%)] relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.75),rgba(15,23,42,0.04))]" />
       {/* Left Sidebar */}
       <div
         className={`${
           showLeft ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 absolute md:relative z-30 h-full w-72 bg-white border-r border-slate-200 flex flex-col transition-transform duration-200`}
+        } md:translate-x-0 absolute md:relative z-30 h-full w-72 bg-white/88 backdrop-blur-xl border-r border-white/70 shadow-2xl shadow-slate-900/5 flex flex-col transition-transform duration-200`}
       >
         {/* Sidebar Header */}
         <div className="p-3 border-b border-slate-100">
           <Button
             onClick={createSession}
-            className="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs h-9"
+            className="w-full bg-gradient-to-r from-slate-950 via-slate-900 to-amber-700 hover:from-slate-900 hover:to-amber-600 text-white font-semibold text-xs h-9 shadow-lg shadow-amber-900/15"
           >
             <Plus className="w-3.5 h-3.5 mr-1.5" />
             {t.newSession}
@@ -869,9 +870,9 @@ export function ChatInterface() {
       </div>
 
       {/* Center Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="relative z-10 flex-1 flex flex-col min-w-0">
         {/* Chat Header */}
-        <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-200">
+        <div className="flex items-center justify-between px-4 py-3 bg-white/78 backdrop-blur-xl border-b border-white/70 shadow-sm">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -882,9 +883,13 @@ export function ChatInterface() {
             >
               {showLeft ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
             </Button>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-bold text-slate-700">{t.aiOnline}</span>
+            <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 shadow-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              <span className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">{t.aiOnline}</span>
+              <span className="hidden sm:inline text-[10px] font-semibold text-emerald-600/80">Tourist ops ready</span>
             </div>
           </div>
 
@@ -909,6 +914,14 @@ export function ChatInterface() {
 
           {/* Header Actions */}
           <div className="flex items-center gap-1">
+            <Button
+              onClick={createSession}
+              size="sm"
+              className="hidden sm:flex h-8 rounded-full bg-slate-950 px-3 text-[11px] font-bold text-white hover:bg-slate-800"
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              New Chat
+            </Button>
             {/* Currency Widget Toggle */}
             <div className="relative">
               <Button
@@ -1039,26 +1052,31 @@ export function ChatInterface() {
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {visibleMessages.length === 0 && !isStreaming && (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
-                <Bot className="w-8 h-8 text-amber-600" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-1">{t.welcomeTitle}</h3>
-              <p className="text-slate-500 text-sm max-w-md mb-6">
-                {t.welcomeDesc}
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                {QUICK_ACTIONS.map((action) => (
-                  <Button
-                    key={action.label}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => sendMessage(action.prompt)}
-                    className="text-xs font-medium border-slate-200 hover:border-amber-300 hover:bg-amber-50"
-                  >
-                    {action.emoji} {action.label}
-                  </Button>
-                ))}
+            <div className="flex h-full items-center justify-center text-center">
+              <div className="w-full max-w-2xl rounded-[2rem] border border-white/80 bg-white/82 p-8 shadow-2xl shadow-slate-900/10 backdrop-blur-xl">
+                <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-600 shadow-xl shadow-amber-900/20">
+                  <Bot className="h-10 w-10 text-amber-200" />
+                </div>
+                <div className="mb-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">
+                  Premium Thailand Intelligence
+                </div>
+                <h3 className="mb-2 text-2xl font-black tracking-tight text-slate-950">{t.welcomeTitle}</h3>
+                <p className="mx-auto mb-7 max-w-md text-sm leading-relaxed text-slate-500">
+                  {t.welcomeDesc}
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {QUICK_ACTIONS.map((action) => (
+                    <Button
+                      key={action.label}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => sendMessage(action.prompt)}
+                      className="rounded-full border-slate-200 bg-white/80 px-4 text-xs font-bold shadow-sm hover:border-amber-300 hover:bg-amber-50"
+                    >
+                      {action.emoji} {action.label}
+                    </Button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -1175,8 +1193,8 @@ export function ChatInterface() {
         )}
 
         {/* Input Area */}
-        <div className="p-3 bg-white border-t border-slate-200">
-          <div className="flex items-end gap-2 max-w-4xl mx-auto">
+        <div className="border-t border-white/70 bg-white/72 p-3 shadow-[0_-12px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+          <div className="mx-auto flex max-w-4xl items-end gap-2 rounded-2xl border border-white/80 bg-white/90 p-2 shadow-xl shadow-slate-900/8">
             <div className="flex-1 relative">
               <textarea
                 ref={textareaRef}
@@ -1186,7 +1204,7 @@ export function ChatInterface() {
                 placeholder={t.placeholder}
                 rows={1}
                 aria-label="Chat message input"
-                className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-300 placeholder:text-slate-400 overflow-hidden"
+                className="w-full resize-none rounded-xl border border-transparent bg-slate-50/90 px-4 py-3 pr-10 text-sm shadow-inner shadow-slate-900/5 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500/40 placeholder:text-slate-400 overflow-hidden"
                 style={{ maxHeight: '200px' }}
               />
 
@@ -1207,7 +1225,7 @@ export function ChatInterface() {
               onClick={() => sendMessage()}
               disabled={isLoading || !input.trim()}
               size="icon"
-              className="h-10 w-10 bg-amber-500 hover:bg-amber-600 text-white flex-shrink-0 rounded-xl"
+              className="h-11 w-11 flex-shrink-0 rounded-xl bg-gradient-to-br from-slate-950 to-amber-600 text-white shadow-lg shadow-amber-900/20 hover:from-slate-900 hover:to-amber-500"
               aria-label="Send message"
             >
               <Send className="w-4 h-4" />
@@ -1234,7 +1252,7 @@ export function ChatInterface() {
       <div
         className={`${
           showRight ? 'translate-x-0' : 'translate-x-full'
-        } lg:translate-x-0 absolute lg:relative z-30 h-full w-72 bg-white border-l border-slate-200 flex flex-col transition-transform duration-200 right-0`}
+        } lg:translate-x-0 absolute lg:relative z-30 h-full w-72 bg-white/88 backdrop-blur-xl border-l border-white/70 shadow-2xl shadow-slate-900/5 flex flex-col transition-transform duration-200 right-0`}
       >
         <div className="p-3 border-b border-slate-100">
           <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">{t.quickTools}</h3>
