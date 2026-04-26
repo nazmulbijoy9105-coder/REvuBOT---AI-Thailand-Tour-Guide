@@ -537,6 +537,7 @@ export function ChatInterface() {
       let chunkCount = 0;
       let parseErrorCount = 0;
       let streamBuffer = '';
+      let assistantMessageAdded = false;
 
       const processStreamLine = (line: string) => {
         if (!line.startsWith('data: ')) return;
@@ -552,6 +553,7 @@ export function ChatInterface() {
               createdAt: new Date().toISOString(),
             };
             setMessages((prev) => [...prev, assistantMessage]);
+            assistantMessageAdded = true;
             setStreamingContent('');
             setIsStreaming(false);
           } else if (data.content) {
@@ -578,6 +580,18 @@ export function ChatInterface() {
       const remaining = streamBuffer + decoder.decode();
       if (remaining.trim()) {
         remaining.split('\n').forEach(processStreamLine);
+      }
+
+      if (!assistantMessageAdded && fullText.trim()) {
+        const assistantMessage: Message = {
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content: fullText,
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+        setStreamingContent('');
+        setIsStreaming(false);
       }
 
       // #region agent log
