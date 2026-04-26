@@ -61,6 +61,14 @@ interface Session {
 type TravelMode = 'solo' | 'couple' | 'family' | 'corporate' | 'business';
 type Language = 'en' | 'th' | 'hi' | 'si' | 'bn';
 
+const LEGACY_CHAT_ERROR = "I'm having trouble connecting right now. Please try again in a moment.";
+
+function removeLegacyErrorMessages(messages: Message[]) {
+  return messages.filter((message) => (
+    message.role !== 'assistant' || !message.content.startsWith(LEGACY_CHAT_ERROR)
+  ));
+}
+
 type AgentDebugPayload = {
   runId: string;
   hypothesisId: string;
@@ -427,7 +435,7 @@ export function ChatInterface() {
       const session = await res.json();
       if (session && !session.error) {
         setCurrentSession(session);
-        setMessages(Array.isArray(session.messages) ? session.messages : []);
+        setMessages(Array.isArray(session.messages) ? removeLegacyErrorMessages(session.messages) : []);
       }
       setStreamingContent('');
     } catch (err) {
