@@ -7,14 +7,18 @@ function joinUrl(baseUrl: string, path: string) {
   return `${baseUrl.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
 }
 
-async function testModel(targetUrl: string, apiKey: string, model: string) {
+async function testModel(targetUrl: string, apiKey: string | undefined, model: string) {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (apiKey) {
+      headers.Authorization = `Bearer ${apiKey}`;
+    }
+
     const response = await fetch(targetUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers,
       body: JSON.stringify({
         model,
         messages: [{ role: 'user', content: 'Reply with exactly: OK' }],
@@ -73,6 +77,7 @@ export async function GET() {
       contentLength?: number;
     },
     candidates: null as null | Record<string, Awaited<ReturnType<typeof testModel>>>,
+    fallback: null as null | Awaited<ReturnType<typeof testModel>>,
   };
 
   try {
@@ -87,6 +92,11 @@ export async function GET() {
       ok: false,
       errorPreview: 'GEMINI_API_KEY is missing at runtime.',
     };
+    diagnostics.fallback = await testModel(
+      'https://text.pollinations.ai/openai/chat/completions',
+      undefined,
+      'openai'
+    );
     return Response.json(diagnostics, { status: 200 });
   }
 
@@ -106,6 +116,12 @@ export async function GET() {
         await testModel(targetUrl, apiKey, candidateModel),
       ])
     )
+  );
+
+  diagnostics.fallback = await testModel(
+    'https://text.pollinations.ai/openai/chat/completions',
+    undefined,
+    'openai'
   );
 
   return Response.json(diagnostics, { status: 200 });

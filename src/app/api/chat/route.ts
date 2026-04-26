@@ -31,13 +31,14 @@ function safeEnqueue(controller: ReadableStreamDefaultController, encoder: TextE
   }
 }
 
-async function callLLM(messages: Array<{ role: string; content: string }>): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY is not set in Vercel environment variables.');
+type LlmProvider = {
+  name: string;
+  baseUrl: string;
+  model: string;
+  apiKey?: string;
+};
 
-  const baseUrl = process.env.OPENAI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai';
-  const model = process.env.LLM_MODEL || 'gemini-2.0-flash';
-
+async function callOpenAICompatible(provider: LlmProvider, messages: Array<{ role: string; content: string }>): Promise<string> {
   // #region agent log
   agentDebugLog({
     runId: 'initial',
@@ -45,23 +46,28 @@ async function callLLM(messages: Array<{ role: string; content: string }>): Prom
     location: 'src/app/api/chat/route.ts:callLLM:before-fetch',
     message: 'LLM request configuration',
     data: {
-      hasGeminiKey: Boolean(apiKey),
+      provider: provider.name,
+      hasApiKey: Boolean(provider.apiKey),
       hasOpenAIBaseUrlEnv: Boolean(process.env.OPENAI_BASE_URL),
       hasModelEnv: Boolean(process.env.LLM_MODEL),
-      baseUrlEndsWithSlash: baseUrl.endsWith('/'),
-      modelLength: model.length,
+      baseUrlEndsWithSlash: provider.baseUrl.endsWith('/'),
+      modelLength: provider.model.length,
       messageCount: messages.length,
     },
   });
   // #endregion
 
-  const response = await fetch(`${baseUrl}/chat/completions`, {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (provider.apiKey) {
+    headers.Authorization = `Bearer ${provider.apiKey}`;
+  }
+
+  const response = await fetch(`${provider.baseUrl.replace(/\/+$/, '')}/chat/completions`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({ model, messages }),
+    headers,
+    body: JSON.stringify({ model: provider.model, messages }),
   });
 
   // #region agent log
@@ -71,6 +77,7 @@ async function callLLM(messages: Array<{ role: string; content: string }>): Prom
     location: 'src/app/api/chat/route.ts:callLLM:after-fetch',
     message: 'LLM response status',
     data: {
+      provider: provider.name,
       ok: response.ok,
       status: response.status,
       contentType: response.headers.get('content-type'),
@@ -87,6 +94,7 @@ async function callLLM(messages: Array<{ role: string; content: string }>): Prom
       location: 'src/app/api/chat/route.ts:callLLM:error-response',
       message: 'LLM returned non-OK response',
       data: {
+        provider: provider.name,
         status: response.status,
         bodyPreview: errorBody.slice(0, 180),
       },
@@ -103,12 +111,56 @@ async function callLLM(messages: Array<{ role: string; content: string }>): Prom
     location: 'src/app/api/chat/route.ts:callLLM:parsed-response',
     message: 'LLM response parsed',
     data: {
+      provider: provider.name,
       choiceCount: Array.isArray(data.choices) ? data.choices.length : 0,
       contentLength: data.choices?.[0]?.message?.content?.length ?? 0,
     },
   });
   // #endregion
   return data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response. Please try again.';
+}
+
+async function callLLM(messages: Array<{ role: string; content: string }>): Promise<string> {
+  const primaryApiKey = process.env.GEMINI_API_KEY;
+  const primaryBaseUrl = process.env.OPENAI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai';
+  const primaryModel = process.env.LLM_MODEL || 'gemini-2.0-flash';
+
+  const providers: LlmProvider[] = [
+    {
+      name: 'configured',
+      baseUrl: primaryBaseUrl,
+      model: primaryModel,
+      apiKey: primaryApiKey,
+    },
+    {
+      name: 'pollinations-free',
+      baseUrl: 'https://text.pollinations.ai/openai',
+      model: 'openai',
+    },
+  ];
+
+  let lastError: unknown;
+  for (const provider of providers) {
+    try {
+      return await callOpenAICompatible(provider, messages);
+    } catch (error) {
+      lastError = error;
+      // #region agent log
+      agentDebugLog({
+        runId: 'initial',
+        hypothesisId: 'D',
+        location: 'src/app/api/chat/route.ts:callLLM:fallback',
+        message: 'LLM provider failed, trying next provider',
+        data: {
+          provider: provider.name,
+          errorMessage: error instanceof Error ? error.message.slice(0, 220) : String(error).slice(0, 220),
+        },
+      });
+      // #endregion
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 export async function POST(req: NextRequest) {
