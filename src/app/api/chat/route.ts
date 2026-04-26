@@ -19,41 +19,37 @@ function safeEnqueue(controller: ReadableStreamDefaultController, encoder: TextE
   }
 }
 
-// ─── Groq Multi-Key Rotation ─────────────────────────────────────────────────
-// Collects all GROQ_API_KEY_1, GROQ_API_KEY_2, ... env vars at startup.
-// Each request round-robins to the next key. If a key hits 429, it is skipped
-// and the next key is tried automatically.
-
 function getGroqKeys(): string[] {
   const keys: string[] = [];
   for (let i = 1; i <= 20; i++) {
     const key = process.env[`GROQ_API_KEY_${i}`];
-    if (key) keys.push(key);
+    if (key && key.trim()) keys.push(key.trim());
   }
-  // Also accept legacy single OPENAI_API_KEY as fallback
-  const single = process.env.OPENAI_API_KEY;
-  if (single && !keys.includes(single)) keys.push(single);
+  console.log(`[REvuBOT] Found ${keys.length} Groq API keys`);
   return keys;
 }
 
-// Shared rotation index across requests in the same serverless instance
 let keyIndex = 0;
 
 async function callLLMWithRotation(
   messages: Array<{ role: string; content: string }>
 ): Promise<string> {
   const keys = getGroqKeys();
+
   if (keys.length === 0) {
-    throw new Error('No API keys configured. Add GROQ_API_KEY_1, GROQ_API_KEY_2, ... to Vercel env vars.');
+    throw new Error('No Groq API keys found. Check GROQ_API_KEY_1 ... in Vercel env vars.');
   }
 
-  const baseUrl = process.env.OPENAI_BASE_URL || 'https://api.groq.com/openai/v1';
-  const model = process.env.LLM_MODEL || 'llama-3.3-70b-versatile';
+  const baseUrl = (process.env.OPENAI_BASE_URL || 'https://api.groq.com/openai/v1').trim();
+  const model = (process.env.LLM_MODEL || 'llama-3.3-70b-versatile').trim();
 
-  // Try each key once, starting from current rotation index
+  console.log(`[REvuBOT] baseUrl=${baseUrl} model=${model} keys=${keys.length} currentIndex=${keyIndex}`);
+
   for (let attempt = 0; attempt < keys.length; attempt++) {
     const currentIndex = (keyIndex + attempt) % keys.length;
     const apiKey = keys[currentIndex];
+
+    console.log(`[REvuBOT] Trying key index ${currentIndex + 1}/${keys.length}`);
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -64,29 +60,27 @@ async function callLLMWithRotation(
       body: JSON.stringify({ model, messages }),
     });
 
+    console.log(`[REvuBOT] Response status: ${response.status}`);
+
     if (response.status === 429) {
-      // This key is rate limited — try the next one
-      console.warn(`GROQ key index ${currentIndex + 1} hit rate limit, trying next...`);
+      const body = await response.text();
+      console.warn(`[REvuBOT] Key ${currentIndex + 1} rate limited: ${body.slice(0, 100)}`);
       continue;
     }
 
     if (!response.ok) {
       const errorBody = await response.text();
+      console.error(`[REvuBOT] API error ${response.status}: ${errorBody.slice(0, 300)}`);
       throw new Error(`LLM API failed (${response.status}): ${errorBody.slice(0, 200)}`);
     }
 
-    // Success — advance rotation index for next request
     keyIndex = (currentIndex + 1) % keys.length;
-
     const data = await response.json();
     return data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response. Please try again.';
   }
 
-  // All keys exhausted
   throw new Error('All API keys have hit their daily rate limit. Resets at midnight UTC.');
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
@@ -99,7 +93,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Ensure the session exists — auto-create if missing
     let session = await db.chatSession.findUnique({ where: { id: sessionId } });
     if (!session) {
       try {
@@ -124,18 +117,15 @@ export async function POST(req: NextRequest) {
 
     const effectiveSessionId = session.id;
 
-    // Save user message to DB
     await db.message.create({
       data: { sessionId: effectiveSessionId, role: 'user', content: message },
     });
 
-    // Get conversation history
     const dbMessages = await db.message.findMany({
       where: { sessionId: effectiveSessionId },
       orderBy: { createdAt: 'asc' },
     });
 
-    // Build messages array for LLM
     const travelModeInstruction = TRAVEL_MODE_PROMPTS[travelMode] || TRAVEL_MODE_PROMPTS.solo;
     const systemPrompt = `${thailandSystemPrompt}\n\n## CURRENT TRAVEL MODE:\n${travelModeInstruction}`;
 
@@ -147,7 +137,6 @@ export async function POST(req: NextRequest) {
       })),
     ];
 
-    // Keep last 20 messages max to stay within token limits
     const trimmedMessages = llmMessages.length > 22
       ? [llmMessages[0], ...llmMessages.slice(-21)]
       : llmMessages;
@@ -166,7 +155,6 @@ export async function POST(req: NextRequest) {
             data: { sessionId: effectiveSessionId, role: 'assistant', content: fullResponse },
           });
 
-          // Update session title if first message
           const messageCount = await db.message.count({ where: { sessionId: effectiveSessionId } });
           if (messageCount <= 2) {
             const title = message.length > 40 ? message.substring(0, 40) + '...' : message;
@@ -175,29 +163,20 @@ export async function POST(req: NextRequest) {
                 where: { id: effectiveSessionId },
                 data: { title },
               });
-            } catch {
-              // Ignore
-            }
+            } catch { /* ignore */ }
           }
 
-          // Stream the response in chunks
           const words = responseText.split(' ');
           const chunkSize = 3;
           let isFirst = true;
 
           for (let i = 0; i < words.length; i += chunkSize) {
             if (!clientConnected) break;
-
             const chunk = words.slice(i, i + chunkSize).join(' ');
             const data = JSON.stringify({ content: chunk, done: false, isFirst });
             isFirst = false;
-
             const ok = safeEnqueue(controller, encoder, 'data: ' + data + '\n\n');
-            if (!ok) {
-              clientConnected = false;
-              break;
-            }
-
+            if (!ok) { clientConnected = false; break; }
             await new Promise((resolve) => setTimeout(resolve, 15));
           }
 
@@ -206,9 +185,9 @@ export async function POST(req: NextRequest) {
           }
 
           try { controller.close(); } catch { /* */ }
-        } catch (error) {
-          console.error('Streaming error:', error);
-          const errorMsg = "I'm having trouble connecting right now. Daily limit may be reached — please try again after midnight UTC. 🙏";
+        } catch (error: any) {
+          console.error('[REvuBOT] Streaming error:', error?.message || error);
+          const errorMsg = `Debug: ${error?.message || 'Unknown error'}`;
 
           try {
             await db.message.create({
@@ -218,13 +197,10 @@ export async function POST(req: NextRequest) {
 
           safeEnqueue(controller, encoder, 'data: ' + JSON.stringify({ content: errorMsg, done: false, isFirst: true }) + '\n\n');
           safeEnqueue(controller, encoder, 'data: ' + JSON.stringify({ done: true, fullResponse: errorMsg }) + '\n\n');
-
           try { controller.close(); } catch { /* */ }
         }
       },
-      cancel() {
-        clientConnected = false;
-      },
+      cancel() { clientConnected = false; },
     });
 
     return new Response(stream, {
@@ -235,7 +211,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('Chat API error:', error);
+    console.error('[REvuBOT] Chat API error:', error);
     return new Response(JSON.stringify({
       error: 'Internal server error',
       details: error?.message || String(error),
