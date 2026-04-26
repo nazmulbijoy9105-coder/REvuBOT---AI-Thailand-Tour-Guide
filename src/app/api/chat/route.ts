@@ -40,10 +40,11 @@ type LlmProvider = {
 
 function cleanFallbackResponse(content: string): string {
   return content
-    .replace(/^d\?+\s*/, '')
-    .replace(/([\w])�\?\?([\w])/g, "$1'$2")
-    .replace(/�\?\?/g, '-')
-    .replace(/\uFFFD/g, '')
+    .replace(/^\u00f0[\u0080-\u00bf]{3}\s*/, '')
+    .replace(/\u00e2\u0080[\u0098\u0099]/g, "'")
+    .replace(/\u00e2\u0080[\u009c\u009d]/g, '"')
+    .replace(/\u00e2\u0080[\u0090-\u0095]/g, '-')
+    .replace(/[\u0080-\u009f\u00f0\uFFFD]/g, '')
     .replace(/[^\S\r\n]+/g, ' ')
     .trim();
 }
