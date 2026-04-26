@@ -527,40 +527,48 @@ export function ChatInterface() {
       let fullText = '';
       let chunkCount = 0;
       let parseErrorCount = 0;
+      let streamBuffer = '';
+
+      const processStreamLine = (line: string) => {
+        if (!line.startsWith('data: ')) return;
+
+        try {
+          const data = JSON.parse(line.slice(6));
+
+          if (data.done) {
+            const assistantMessage: Message = {
+              id: `msg-${Date.now()}`,
+              role: 'assistant',
+              content: data.fullResponse || fullText,
+              createdAt: new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, assistantMessage]);
+            setStreamingContent('');
+            setIsStreaming(false);
+          } else if (data.content) {
+            fullText += (data.isFirst ? '' : ' ') + data.content;
+            setStreamingContent(fullText);
+          }
+        } catch {
+          parseErrorCount += 1;
+          // Ignore malformed SSE lines but keep the stream alive.
+        }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
+        streamBuffer += decoder.decode(value, { stream: true });
         chunkCount += 1;
-        const lines = chunk.split('\n');
+        const lines = streamBuffer.split('\n');
+        streamBuffer = lines.pop() || '';
+        lines.forEach(processStreamLine);
+      }
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-
-              if (data.done) {
-                const assistantMessage: Message = {
-                  id: `msg-${Date.now()}`,
-                  role: 'assistant',
-                  content: data.fullResponse || fullText,
-                  createdAt: new Date().toISOString(),
-                };
-                setMessages((prev) => [...prev, assistantMessage]);
-                setStreamingContent('');
-                setIsStreaming(false);
-              } else if (data.content) {
-                fullText += (data.isFirst ? '' : ' ') + data.content;
-                setStreamingContent(fullText);
-              }
-            } catch {
-              parseErrorCount += 1;
-              // Ignore parse errors
-            }
-          }
-        }
+      const remaining = streamBuffer + decoder.decode();
+      if (remaining.trim()) {
+        remaining.split('\n').forEach(processStreamLine);
       }
 
       // #region agent log
