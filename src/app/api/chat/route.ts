@@ -271,7 +271,7 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const responseText = await callLLM(trimmedMessages);
+          const responseText = cleanFallbackResponse(await callLLM(trimmedMessages));
 
           fullResponse = responseText;
           await db.message.create({
