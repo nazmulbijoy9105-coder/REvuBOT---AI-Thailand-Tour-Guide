@@ -191,9 +191,14 @@ export async function POST(req: NextRequest) {
         Connection: 'keep-alive',
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Chat API error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    const errorInfo = {
+      error: 'Internal server error',
+      details: error?.message || String(error),
+      stack: error?.stack?.split('\n').slice(0, 3).join(' | '),
+    };
+    return new Response(JSON.stringify(errorInfo), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
