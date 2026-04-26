@@ -289,24 +289,25 @@ export async function POST(req: NextRequest) {
             } catch { /* ignore */ }
           }
 
-          const words = responseText.split(' ');
-          const chunkSize = 3;
-          let isFirst = true;
           let chunksSent = 0;
 
-          for (let i = 0; i < words.length; i += chunkSize) {
-            if (!clientConnected) break;
-            const chunk = words.slice(i, i + chunkSize).join(' ');
-            const data = JSON.stringify({ content: chunk, done: false, isFirst });
-            isFirst = false;
+          if (clientConnected) {
+            const data = JSON.stringify({ content: responseText, done: false, isFirst: true });
             const ok = safeEnqueue(controller, encoder, 'data: ' + data + '\n\n');
-            if (!ok) { clientConnected = false; break; }
-            chunksSent += 1;
-            await new Promise((resolve) => setTimeout(resolve, 15));
+            if (!ok) {
+              clientConnected = false;
+            } else {
+              chunksSent = 1;
+            }
           }
 
           if (clientConnected) {
-            safeEnqueue(controller, encoder, 'data: ' + JSON.stringify({ done: true, fullResponse }) + '\n\n');
+            const ok = safeEnqueue(controller, encoder, 'data: ' + JSON.stringify({ done: true, fullResponse }) + '\n\n');
+            if (!ok) {
+              clientConnected = false;
+            } else {
+              chunksSent += 1;
+            }
           }
 
           // #region agent log
