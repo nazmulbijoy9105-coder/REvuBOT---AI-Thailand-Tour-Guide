@@ -348,6 +348,7 @@ export function ChatInterface() {
 
   // Localization helper
   const t = LOCALIZATION[language] || LOCALIZATION.en;
+  const visibleMessages = removeLegacyErrorMessages(messages);
 
   // Auto-scroll
   useEffect(() => {
@@ -1023,7 +1024,7 @@ export function ChatInterface() {
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 && !isStreaming && (
+          {visibleMessages.length === 0 && !isStreaming && (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
                 <Bot className="w-8 h-8 text-amber-600" />
@@ -1048,7 +1049,7 @@ export function ChatInterface() {
             </div>
           )}
 
-          {messages.map((msg) => (
+          {visibleMessages.map((msg) => (
             <div
               key={msg.id}
               onMouseEnter={() => setHoveredMsgId(msg.id)}
@@ -1141,7 +1142,7 @@ export function ChatInterface() {
         </div>
 
         {/* Quick Actions (when messages exist) */}
-        {messages.length > 0 && !isLoading && (
+        {visibleMessages.length > 0 && !isLoading && (
           <div className="px-4 pb-2">
             <div className="flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
               {QUICK_ACTIONS.map((action) => (
