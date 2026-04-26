@@ -38,6 +38,16 @@ type LlmProvider = {
   apiKey?: string;
 };
 
+function cleanFallbackResponse(content: string): string {
+  return content
+    .replace(/^d\?+\s*/, '')
+    .replace(/([\w])�\?\?([\w])/g, "$1'$2")
+    .replace(/�\?\?/g, '-')
+    .replace(/\uFFFD/g, '')
+    .replace(/[^\S\r\n]+/g, ' ')
+    .trim();
+}
+
 async function callOpenAICompatible(provider: LlmProvider, messages: Array<{ role: string; content: string }>): Promise<string> {
   // #region agent log
   agentDebugLog({
@@ -117,7 +127,8 @@ async function callOpenAICompatible(provider: LlmProvider, messages: Array<{ rol
     },
   });
   // #endregion
-  return data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response. Please try again.';
+  const content = data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response. Please try again.';
+  return provider.name === 'pollinations-free' ? cleanFallbackResponse(content) : content;
 }
 
 async function callLLM(messages: Array<{ role: string; content: string }>): Promise<string> {
