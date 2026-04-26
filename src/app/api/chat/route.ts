@@ -177,7 +177,8 @@ async function callLLM(messages: Array<{ role: string; content: string }>): Prom
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, sessionId, travelMode = 'solo' } = await req.json();
+    const { message, sessionId, travelMode = 'solo', responseFormat } = await req.json();
+    const wantsJson = responseFormat === 'json' || req.headers.get('accept')?.includes('application/json');
 
     // #region agent log
     agentDebugLog({
@@ -264,6 +265,67 @@ export async function POST(req: NextRequest) {
     });
     // #endregion
 
+    const saveAssistantResponse = async (responseText: string) => {
+      const fullResponse = cleanFallbackResponse(responseText);
+      await db.message.create({
+        data: { sessionId: effectiveSessionId, role: 'assistant', content: fullResponse },
+      });
+
+      const messageCount = await db.message.count({ where: { sessionId: effectiveSessionId } });
+      if (messageCount <= 2) {
+        const title = message.length > 40 ? message.substring(0, 40) + '...' : message;
+        try {
+          await db.chatSession.update({
+            where: { id: effectiveSessionId },
+            data: { title },
+          });
+        } catch { /* ignore */ }
+      }
+
+      return fullResponse;
+    };
+
+    if (wantsJson) {
+      try {
+        const fullResponse = await saveAssistantResponse(await callLLM(trimmedMessages));
+        return new Response(JSON.stringify({ content: fullResponse }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, max-age=0',
+          },
+        });
+      } catch (error: any) {
+        console.error('[REvuBOT] JSON chat error:', error?.message || error);
+        // #region agent log
+        agentDebugLog({
+          runId: 'initial',
+          hypothesisId: 'B,D',
+          location: 'src/app/api/chat/route.ts:json:error',
+          message: 'JSON chat failed',
+          data: {
+            errorMessage: error?.message || String(error),
+          },
+        });
+        // #endregion
+
+        const errorMsg = "I'm having trouble connecting right now. Please try again in a moment. 🙏";
+        try {
+          await db.message.create({
+            data: { sessionId: effectiveSessionId, role: 'assistant', content: errorMsg },
+          });
+        } catch { /* */ }
+
+        return new Response(JSON.stringify({ content: errorMsg, error: true }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, max-age=0',
+          },
+        });
+      }
+    }
+
     const encoder = new TextEncoder();
     let fullResponse = '';
     let clientConnected = true;
@@ -271,23 +333,8 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const responseText = cleanFallbackResponse(await callLLM(trimmedMessages));
-
+          const responseText = await saveAssistantResponse(await callLLM(trimmedMessages));
           fullResponse = responseText;
-          await db.message.create({
-            data: { sessionId: effectiveSessionId, role: 'assistant', content: fullResponse },
-          });
-
-          const messageCount = await db.message.count({ where: { sessionId: effectiveSessionId } });
-          if (messageCount <= 2) {
-            const title = message.length > 40 ? message.substring(0, 40) + '...' : message;
-            try {
-              await db.chatSession.update({
-                where: { id: effectiveSessionId },
-                data: { title },
-              });
-            } catch { /* ignore */ }
-          }
 
           let chunksSent = 0;
 

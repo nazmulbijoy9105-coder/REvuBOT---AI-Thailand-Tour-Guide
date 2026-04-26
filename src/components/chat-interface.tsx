@@ -504,11 +504,15 @@ export function ChatInterface() {
 
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
         body: JSON.stringify({
           message: text,
           sessionId: session!.id,
           travelMode,
+          responseFormat: 'json',
         }),
       });
 
@@ -528,6 +532,22 @@ export function ChatInterface() {
       // #endregion
 
       if (!res.ok) throw new Error('Chat request failed');
+
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        const assistantMessage: Message = {
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content: data.content || "I'm having trouble connecting right now. Please try again in a moment. 🙏",
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+        setStreamingContent('');
+        setIsStreaming(false);
+        loadSessions();
+        return;
+      }
 
       const reader = res.body?.getReader();
       if (!reader) throw new Error('No reader');
