@@ -19,67 +19,29 @@ function safeEnqueue(controller: ReadableStreamDefaultController, encoder: TextE
   }
 }
 
-function getGroqKeys(): string[] {
-  const keys: string[] = [];
-  for (let i = 1; i <= 20; i++) {
-    const key = process.env[`GROQ_API_KEY_${i}`];
-    if (key && key.trim()) keys.push(key.trim());
-  }
-  console.log(`[REvuBOT] Found ${keys.length} Groq API keys`);
-  return keys;
-}
+async function callLLM(messages: Array<{ role: string; content: string }>): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY is not set in Vercel environment variables.');
 
-let keyIndex = 0;
+  const baseUrl = process.env.OPENAI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai';
+  const model = process.env.LLM_MODEL || 'gemini-2.0-flash';
 
-async function callLLMWithRotation(
-  messages: Array<{ role: string; content: string }>
-): Promise<string> {
-  const keys = getGroqKeys();
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ model, messages }),
+  });
 
-  if (keys.length === 0) {
-    throw new Error('No Groq API keys found. Check GROQ_API_KEY_1 ... in Vercel env vars.');
-  }
-
-  const baseUrl = (process.env.OPENAI_BASE_URL || 'https://api.groq.com/openai/v1').trim();
-  const model = (process.env.LLM_MODEL || 'llama-3.3-70b-versatile').trim();
-
-  console.log(`[REvuBOT] baseUrl=${baseUrl} model=${model} keys=${keys.length} currentIndex=${keyIndex}`);
-
-  for (let attempt = 0; attempt < keys.length; attempt++) {
-    const currentIndex = (keyIndex + attempt) % keys.length;
-    const apiKey = keys[currentIndex];
-
-    console.log(`[REvuBOT] Trying key index ${currentIndex + 1}/${keys.length}`);
-
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({ model, messages }),
-    });
-
-    console.log(`[REvuBOT] Response status: ${response.status}`);
-
-    if (response.status === 429) {
-      const body = await response.text();
-      console.warn(`[REvuBOT] Key ${currentIndex + 1} rate limited: ${body.slice(0, 100)}`);
-      continue;
-    }
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`[REvuBOT] API error ${response.status}: ${errorBody.slice(0, 300)}`);
-      throw new Error(`LLM API failed (${response.status}): ${errorBody.slice(0, 200)}`);
-    }
-
-    keyIndex = (currentIndex + 1) % keys.length;
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response. Please try again.';
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`LLM API failed (${response.status}): ${errorBody.slice(0, 200)}`);
   }
 
-  throw new Error('All API keys have hit their daily rate limit. Resets at midnight UTC.');
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response. Please try again.';
 }
 
 export async function POST(req: NextRequest) {
@@ -148,7 +110,7 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const responseText = await callLLMWithRotation(trimmedMessages);
+          const responseText = await callLLM(trimmedMessages);
 
           fullResponse = responseText;
           await db.message.create({
@@ -187,7 +149,7 @@ export async function POST(req: NextRequest) {
           try { controller.close(); } catch { /* */ }
         } catch (error: any) {
           console.error('[REvuBOT] Streaming error:', error?.message || error);
-          const errorMsg = `Debug: ${error?.message || 'Unknown error'}`;
+          const errorMsg = "I'm having trouble connecting right now. Please try again in a moment. 🙏";
 
           try {
             await db.message.create({
