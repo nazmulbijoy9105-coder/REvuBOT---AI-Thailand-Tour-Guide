@@ -133,13 +133,13 @@ async function callOpenAICompatible(provider: LlmProvider, messages: Array<{ rol
 }
 
 async function callLLM(messages: Array<{ role: string; content: string }>): Promise<string> {
-  const primaryApiKey = process.env.GEMINI_API_KEY;
-  const primaryBaseUrl = process.env.OPENAI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai';
-  const primaryModel = process.env.LLM_MODEL || 'gemini-2.0-flash';
+  const primaryApiKey = process.env.XAI_API_KEY;
+  const primaryBaseUrl = process.env.OPENAI_BASE_URL || 'https://api.x.ai/v1';
+  const primaryModel = process.env.LLM_MODEL || 'grok-3';
 
   const providers: LlmProvider[] = [
     {
-      name: 'configured',
+      name: 'grok',
       baseUrl: primaryBaseUrl,
       model: primaryModel,
       apiKey: primaryApiKey,
