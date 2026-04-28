@@ -321,7 +321,7 @@ Format as markdown with headers for each day.`;
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <Card className="bg-slate-800 border-slate-700 h-full">
+            <Card className="bg-slate-900 border-amber-500/30 h-full">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-amber-400" />
@@ -330,7 +330,7 @@ Format as markdown with headers for each day.`;
               </CardHeader>
               <CardContent>
                 {result ? (
-                  <div className="prose prose-sm max-w-none max-h-[600px] overflow-y-auto custom-scrollbar prose-headings:text-amber-400 prose-p:text-slate-200 prose-strong:text-white prose-li:text-slate-200 prose-h1:text-amber-400 prose-h2:text-amber-400 prose-h3:text-amber-400 prose-h4:text-white prose-ul:text-slate-200 prose-ol:text-slate-200">
+                  <div className="prose prose-sm max-w-none max-h-[600px] overflow-y-auto custom-scrollbar [&_*]:text-white [&_h1]:text-amber-400 [&_h2]:text-amber-400 [&_h3]:text-amber-300 [&_h4]:text-amber-200 [&_strong]:text-amber-200 [&_p]:text-white [&_li]:text-white [&_td]:text-white [&_th]:text-amber-400 [&_table]:border-slate-600 [&_tr]:border-slate-600">
                     <ReactMarkdown>{result}</ReactMarkdown>
                   </div>
                 ) : (
