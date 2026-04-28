@@ -330,7 +330,7 @@ Format as markdown with headers for each day.`;
               </CardHeader>
               <CardContent>
                 {result ? (
-                  <div className="prose prose-sm prose-invert max-w-none max-h-[600px] overflow-y-auto custom-scrollbar">
+                  <div className="prose prose-sm max-w-none max-h-[600px] overflow-y-auto custom-scrollbar prose-headings:text-amber-400 prose-p:text-slate-200 prose-strong:text-white prose-li:text-slate-200 prose-h1:text-amber-400 prose-h2:text-amber-400 prose-h3:text-amber-400 prose-h4:text-white prose-ul:text-slate-200 prose-ol:text-slate-200">
                     <ReactMarkdown>{result}</ReactMarkdown>
                   </div>
                 ) : (
