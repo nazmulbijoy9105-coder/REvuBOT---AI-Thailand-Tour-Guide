@@ -1,422 +1,91 @@
-import { NextRequest } from 'next/server';
-import { db } from '@/lib/db';
-import { thailandSystemPrompt } from '@/data/thailand-data';
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+import { routeChat } from '@/lib/ai/router';
 
-type AgentDebugPayload = {
-  runId: string;
-  hypothesisId: string;
-  location: string;
-  message: string;
-  data: Record<string, unknown>;
-};
-
-function agentDebugLog(payload: AgentDebugPayload) {
-  fetch('http://127.0.0.1:7692/ingest/546afc5a-ad75-410d-afea-f935f43c38f1', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '16a81d' }, body: JSON.stringify({ sessionId: '16a81d', ...payload, timestamp: Date.now() }) }).catch(() => {});
-}
-
-const TRAVEL_MODE_PROMPTS: Record<string, string> = {
-  solo: "The user is traveling SOLO. Focus on budget-friendly options, social hostels, solo-friendly activities, safety tips for solo travelers, and places to meet other travelers.",
-  couple: "The user is traveling as a COUPLE. Focus on romantic spots, sunset dining, couple-friendly hotels, private tours, and intimate experiences.",
-  family: "The user is traveling with FAMILY/GROUP. Focus on kid-friendly activities, family hotels, group dining options, safety for children, and logistics for larger groups.",
-  corporate: "The user is on CORPORATE travel. Focus on business hotels, coworking spaces, executive transport, networking venues, and efficient itineraries around meetings.",
-  business: "The user is on BUSINESS travel. Focus on premium accommodations, professional dining, transport efficiency, and combining work with leisure activities.",
-};
-
-function safeEnqueue(controller: ReadableStreamDefaultController, encoder: TextEncoder, data: string): boolean {
-  try {
-    controller.enqueue(encoder.encode(data));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-type LlmProvider = {
-  name: string;
-  baseUrl: string;
-  model: string;
-  apiKey?: string;
-};
-
-function cleanFallbackResponse(content: string): string {
-  return content
-    .replace(/^\u00f0[\u0080-\u00bf]{3}\s*/, '')
-    .replace(/\u00e2\u0080[\u0098\u0099]/g, "'")
-    .replace(/\u00e2\u0080[\u009c\u009d]/g, '"')
-    .replace(/\u00e2\u0080[\u0090-\u0095]/g, '-')
-    .replace(/[\u0080-\u009f\u00f0\uFFFD]/g, '')
-    .replace(/[^\S\r\n]+/g, ' ')
-    .trim();
-}
-
-async function callOpenAICompatible(provider: LlmProvider, messages: Array<{ role: string; content: string }>): Promise<string> {
-  // #region agent log
-  agentDebugLog({
-    runId: 'initial',
-    hypothesisId: 'C',
-    location: 'src/app/api/chat/route.ts:callLLM:before-fetch',
-    message: 'LLM request configuration',
-    data: {
-      provider: provider.name,
-      hasApiKey: Boolean(provider.apiKey),
-      hasOpenAIBaseUrlEnv: Boolean(process.env.OPENAI_BASE_URL),
-      hasModelEnv: Boolean(process.env.LLM_MODEL),
-      baseUrlEndsWithSlash: provider.baseUrl.endsWith('/'),
-      modelLength: provider.model.length,
-      messageCount: messages.length,
-    },
-  });
-  // #endregion
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (provider.apiKey) {
-    headers.Authorization = `Bearer ${provider.apiKey}`;
-  }
-
-  const response = await fetch(`${provider.baseUrl.replace(/\/+$/, '')}/chat/completions`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ model: provider.model, messages }),
-  });
-
-  // #region agent log
-  agentDebugLog({
-    runId: 'initial',
-    hypothesisId: 'C,D',
-    location: 'src/app/api/chat/route.ts:callLLM:after-fetch',
-    message: 'LLM response status',
-    data: {
-      provider: provider.name,
-      ok: response.ok,
-      status: response.status,
-      contentType: response.headers.get('content-type'),
-    },
-  });
-  // #endregion
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    // #region agent log
-    agentDebugLog({
-      runId: 'initial',
-      hypothesisId: 'D',
-      location: 'src/app/api/chat/route.ts:callLLM:error-response',
-      message: 'LLM returned non-OK response',
-      data: {
-        provider: provider.name,
-        status: response.status,
-        bodyPreview: errorBody.slice(0, 180),
-      },
-    });
-    // #endregion
-    throw new Error(`LLM API failed (${response.status}): ${errorBody.slice(0, 200)}`);
-  }
-
-  const data = await response.json();
-  // #region agent log
-  agentDebugLog({
-    runId: 'initial',
-    hypothesisId: 'D',
-    location: 'src/app/api/chat/route.ts:callLLM:parsed-response',
-    message: 'LLM response parsed',
-    data: {
-      provider: provider.name,
-      choiceCount: Array.isArray(data.choices) ? data.choices.length : 0,
-      contentLength: data.choices?.[0]?.message?.content?.length ?? 0,
-    },
-  });
-  // #endregion
-  const content = data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response. Please try again.';
-  return provider.name === 'pollinations-free' ? cleanFallbackResponse(content) : content;
-}
-
-async function callLLM(messages: Array<{ role: string; content: string }>): Promise<string> {
-  const primaryApiKey = process.env.XAI_API_KEY;
-  const primaryBaseUrl = process.env.OPENAI_BASE_URL || 'https://api.x.ai/v1';
-  const primaryModel = process.env.LLM_MODEL || 'grok-3';
-
-  const providers: LlmProvider[] = [
-    {
-      name: 'grok',
-      baseUrl: primaryBaseUrl,
-      model: primaryModel,
-      apiKey: primaryApiKey,
-    },
-    {
-      name: 'pollinations-free',
-      baseUrl: 'https://text.pollinations.ai/openai',
-      model: 'openai',
-    },
-  ];
-
-  let lastError: unknown;
-  for (const provider of providers) {
-    try {
-      return await callOpenAICompatible(provider, messages);
-    } catch (error) {
-      lastError = error;
-      // #region agent log
-      agentDebugLog({
-        runId: 'initial',
-        hypothesisId: 'D',
-        location: 'src/app/api/chat/route.ts:callLLM:fallback',
-        message: 'LLM provider failed, trying next provider',
-        data: {
-          provider: provider.name,
-          errorMessage: error instanceof Error ? error.message.slice(0, 220) : String(error).slice(0, 220),
-        },
-      });
-      // #endregion
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
-}
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
+const prisma = globalForPrisma.prisma ?? new PrismaClient();
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, sessionId, travelMode = 'solo', responseFormat } = await req.json();
-    const wantsJson = responseFormat === 'json' || req.headers.get('accept')?.includes('application/json');
+    const { message, conversationId } = await req.json();
 
-    // #region agent log
-    agentDebugLog({
-      runId: 'initial',
-      hypothesisId: 'A',
-      location: 'src/app/api/chat/route.ts:POST:request',
-      message: 'Chat API received request',
-      data: {
-        hasMessage: Boolean(message),
-        messageLength: typeof message === 'string' ? message.length : 0,
-        hasSessionId: Boolean(sessionId),
-        travelMode,
-      },
-    });
-    // #endregion
+    if (!message || typeof message !== 'string') {
+      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    }
 
-    if (!message || !sessionId) {
-      return new Response(JSON.stringify({ error: 'Message and sessionId are required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
+    if (message.length > 2000) {
+      return NextResponse.json({ error: 'Message too long (max 2000 chars)' }, { status: 400 });
+    }
+
+    let convoId = conversationId;
+    let previousMessages: { role: 'user' | 'assistant'; content: string }[] = [];
+
+    if (convoId) {
+      const convo = await prisma.conversation.findUnique({
+        where: { id: convoId },
+        include: { messages: { orderBy: { createdAt: 'asc' } }, preference: true },
       });
-    }
-
-    let session = await db.chatSession.findUnique({ where: { id: sessionId } });
-    if (!session) {
-      try {
-        session = await db.chatSession.create({
-          data: {
-            id: sessionId,
-            title: message.length > 40 ? message.substring(0, 40) + '...' : message,
-            travelMode: travelMode || 'solo',
-            language: 'en',
-          },
-        });
-      } catch {
-        session = await db.chatSession.create({
-          data: {
-            title: message.length > 40 ? message.substring(0, 40) + '...' : message,
-            travelMode: travelMode || 'solo',
-            language: 'en',
-          },
-        });
+      if (!convo) {
+        return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
       }
-    }
-
-    const effectiveSessionId = session.id;
-
-    await db.message.create({
-      data: { sessionId: effectiveSessionId, role: 'user', content: message },
-    });
-
-    const dbMessages = await db.message.findMany({
-      where: { sessionId: effectiveSessionId },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    const travelModeInstruction = TRAVEL_MODE_PROMPTS[travelMode] || TRAVEL_MODE_PROMPTS.solo;
-    const systemPrompt = `${thailandSystemPrompt}\n\n## CURRENT TRAVEL MODE:\n${travelModeInstruction}`;
-
-    const llmMessages = [
-      { role: 'system' as const, content: systemPrompt },
-      ...dbMessages.map((m: any) => ({
-        role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
+      previousMessages = convo.messages.map(m => ({
+        role: m.role as 'user' | 'assistant',
         content: m.content,
-      })),
-    ];
+      }));
 
-    const trimmedMessages = llmMessages.length > 22
-      ? [llmMessages[0], ...llmMessages.slice(-21)]
-      : llmMessages;
-
-    // #region agent log
-    agentDebugLog({
-      runId: 'initial',
-      hypothesisId: 'B',
-      location: 'src/app/api/chat/route.ts:POST:before-stream',
-      message: 'Session and messages prepared',
-      data: {
-        foundOrCreatedSession: Boolean(session),
-        effectiveSessionIdChanged: effectiveSessionId !== sessionId,
-        dbMessageCount: dbMessages.length,
-        trimmedMessageCount: trimmedMessages.length,
-      },
-    });
-    // #endregion
-
-    const saveAssistantResponse = async (responseText: string) => {
-      const fullResponse = cleanFallbackResponse(responseText);
-      await db.message.create({
-        data: { sessionId: effectiveSessionId, role: 'assistant', content: fullResponse },
+      // Add preference context if available
+      if (convo.preference) {
+        const p = convo.preference;
+        const parts = [];
+        if (p.budget) parts.push(`Budget: ${p.budget}`);
+        if (p.travelStyle) parts.push(`Style: ${p.travelStyle}`);
+        if (p.interests?.length) parts.push(`Interests: ${p.interests.join(', ')}`);
+        if (p.groupType) parts.push(`Group: ${p.groupType}`);
+        if (parts.length) {
+          previousMessages.push({
+            role: 'assistant',
+            content: `[User Profile noted: ${parts.join(' | ')}]`,
+          });
+        }
+      }
+    } else {
+      const convo = await prisma.conversation.create({
+        data: { title: message.slice(0, 50) },
       });
-
-      const messageCount = await db.message.count({ where: { sessionId: effectiveSessionId } });
-      if (messageCount <= 2) {
-        const title = message.length > 40 ? message.substring(0, 40) + '...' : message;
-        try {
-          await db.chatSession.update({
-            where: { id: effectiveSessionId },
-            data: { title },
-          });
-        } catch { /* ignore */ }
-      }
-
-      return fullResponse;
-    };
-
-    if (wantsJson) {
-      try {
-        const fullResponse = await saveAssistantResponse(await callLLM(trimmedMessages));
-        return new Response(JSON.stringify({ content: fullResponse }), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, max-age=0',
-          },
-        });
-      } catch (error: any) {
-        console.error('[REvuBOT] JSON chat error:', error?.message || error);
-        // #region agent log
-        agentDebugLog({
-          runId: 'initial',
-          hypothesisId: 'B,D',
-          location: 'src/app/api/chat/route.ts:json:error',
-          message: 'JSON chat failed',
-          data: {
-            errorMessage: error?.message || String(error),
-          },
-        });
-        // #endregion
-
-        const errorMsg = "I'm having trouble connecting right now. Please try again in a moment. 🙏";
-        try {
-          await db.message.create({
-            data: { sessionId: effectiveSessionId, role: 'assistant', content: errorMsg },
-          });
-        } catch { /* */ }
-
-        return new Response(JSON.stringify({ content: errorMsg, error: true }), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, max-age=0',
-          },
-        });
-      }
+      convoId = convo.id;
     }
 
-    const encoder = new TextEncoder();
-    let fullResponse = '';
-    let clientConnected = true;
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          const responseText = await saveAssistantResponse(await callLLM(trimmedMessages));
-          fullResponse = responseText;
-
-          let chunksSent = 0;
-
-          if (clientConnected) {
-            const data = JSON.stringify({ content: responseText, done: false, isFirst: true });
-            const ok = safeEnqueue(controller, encoder, 'data: ' + data + '\n\n');
-            if (!ok) {
-              clientConnected = false;
-            } else {
-              chunksSent = 1;
-            }
-          }
-
-          if (clientConnected) {
-            const ok = safeEnqueue(controller, encoder, 'data: ' + JSON.stringify({ done: true, fullResponse }) + '\n\n');
-            if (!ok) {
-              clientConnected = false;
-            } else {
-              chunksSent += 1;
-            }
-          }
-
-          // #region agent log
-          agentDebugLog({
-            runId: 'initial',
-            hypothesisId: 'E',
-            location: 'src/app/api/chat/route.ts:stream:complete',
-            message: 'Chat stream completed',
-            data: {
-              clientConnected,
-              responseLength: fullResponse.length,
-              chunksSent,
-            },
-          });
-          // #endregion
-
-          try { controller.close(); } catch { /* */ }
-        } catch (error: any) {
-          console.error('[REvuBOT] Streaming error:', error?.message || error);
-          // #region agent log
-          agentDebugLog({
-            runId: 'initial',
-            hypothesisId: 'B,D',
-            location: 'src/app/api/chat/route.ts:stream:error',
-            message: 'Chat stream failed',
-            data: {
-              errorMessage: error?.message || String(error),
-              responseLength: fullResponse.length,
-            },
-          });
-          // #endregion
-          const errorMsg = "I'm having trouble connecting right now. Please try again in a moment. 🙏";
-
-          try {
-            await db.message.create({
-              data: { sessionId: effectiveSessionId, role: 'assistant', content: errorMsg },
-            });
-          } catch { /* */ }
-
-          safeEnqueue(controller, encoder, 'data: ' + JSON.stringify({ content: errorMsg, done: false, isFirst: true }) + '\n\n');
-          safeEnqueue(controller, encoder, 'data: ' + JSON.stringify({ done: true, fullResponse: errorMsg }) + '\n\n');
-          try { controller.close(); } catch { /* */ }
-        }
-      },
-      cancel() { clientConnected = false; },
+    // Save user message
+    await prisma.message.create({
+      data: { conversationId: convoId, role: 'user', content: message },
     });
 
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
+    // Build messages for AI (last 10 for context)
+    const chatMessages = [...previousMessages.slice(-10), { role: 'user' as const, content: message }];
+
+    // Route to AI
+    const result = await routeChat(chatMessages);
+
+    // Save assistant message
+    await prisma.message.create({
+      data: {
+        conversationId: convoId,
+        role: 'assistant',
+        content: result.content,
+        aiProvider: result.provider,
+        responseTime: result.responseTime,
       },
+    });
+
+    return NextResponse.json({
+      content: result.content,
+      provider: result.provider,
+      responseTime: result.responseTime,
+      conversationId: convoId,
     });
   } catch (error: any) {
-    console.error('[REvuBOT] Chat API error:', error);
-    return new Response(JSON.stringify({
-      error: 'Internal server error',
-      details: error?.message || String(error),
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    console.error('[Chat API Error]', error);
+    return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
   }
 }

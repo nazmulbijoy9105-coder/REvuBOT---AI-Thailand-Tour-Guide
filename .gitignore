@@ -95,3 +95,5 @@ firebase-applet-config.json
 firebase-blueprint.json
 metadata.json
 package-lock.json
+.env.local
+.env.local.backup
