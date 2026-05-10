@@ -1,11 +1,133 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { routeChat } from '@/lib/ai/router';
+import OpenAI from 'openai';
 
+// ===== PRISMA =====
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 const prisma = globalForPrisma.prisma ?? new PrismaClient();
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
+// ===== SYSTEM PROMPT =====
+const SYSTEM_PROMPT = `You are REvuBOT, an expert AI Thailand Tour Guide.
+
+## MANDATORY RESPONSE RULES:
+
+1. **BE SPECIFIC, NOT BROAD** — Give exact names, prices, locations, hours.
+   BAD: "There are many temples in Bangkok."
+   GOOD: "Visit Wat Arun (entrance 100 THB, open 8AM-6PM). Take the Chao Phraya Express Boat to Tha Tien pier — 16 THB."
+
+2. **BE PRECISE** — Answer exactly what was asked. Do NOT add unrelated info.
+
+3. **SUMMARY FORMAT** — Use bullet points, short paragraphs. Scannable.
+   - **Wat Pho**: 200 THB, 8AM-6:30PM, nearest BTS: Saphan Taksin + boat
+   - **Wat Arun**: 100 THB, 8AM-6PM, same boat to Tha Tien pier
+
+4. **ASK BEFORE ASSUMING** — If unclear, ask 1-2 focused questions:
+   "What's your budget range? Solo or with family?"
+
+5. **FOCUS ON CLIENT NEEDS** — Match their budget and travel style exactly.
+
+6. **ACTIONABLE NEXT STEPS** — Always end with what they should DO next.
+
+## YOUR KNOWLEDGE:
+- All 77 provinces of Thailand
+- Transport: BTS, MRT, boats, tuk-tuks, Grab, trains, buses
+- Accommodation by budget tier
+- Street food to fine dining with THB prices
+- Temples, beaches, islands, mountains, national parks
+- Visa, customs, cultural etiquette
+- Safety tips, scams to avoid
+- Seasonal recommendations
+- Thai language basics for travelers
+
+## RESPONSE FORMAT:
+- Use **bold** for names and prices
+- Use bullet lists for multiple options
+- Keep under 200 words unless asked for detail
+- Always include THB prices and transport info
+- End with a follow-up question or next step
+
+If asked outside Thailand, redirect politely.
+If asked illegal, refuse politely.
+Always respect Thai culture.`;
+
+// ===== DEEPSEEK CLIENT =====
+const deepseek = new OpenAI({
+  baseURL: 'https://api.deepseek.com',
+  apiKey: process.env.DEEPSEEK_API_KEY,
+});
+
+async function chatWithDeepSeek(messages: { role: 'system' | 'user' | 'assistant'; content: string }[]) {
+  const start = Date.now();
+  const response = await deepseek.chat.completions.create({
+    model: 'deepseek-chat',
+    messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
+    temperature: 0.3,
+    max_tokens: 800,
+    frequency_penalty: 0.3,
+    presence_penalty: 0.2,
+  });
+  return {
+    content: response.choices[0]?.message?.content || 'Sorry, no response generated.',
+    provider: 'deepseek',
+    responseTime: Date.now() - start,
+  };
+}
+
+// ===== GROK CLIENT =====
+const grok = new OpenAI({
+  baseURL: 'https://api.x.ai/v1',
+  apiKey: process.env.GROK_API_KEY,
+});
+
+async function chatWithGrok(messages: { role: 'system' | 'user' | 'assistant'; content: string }[]) {
+  const start = Date.now();
+  const response = await grok.chat.completions.create({
+    model: 'grok-3-mini',
+    messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
+    temperature: 0.3,
+    max_tokens: 1200,
+  });
+  return {
+    content: response.choices[0]?.message?.content || 'Sorry, no response generated.',
+    provider: 'grok',
+    responseTime: Date.now() - start,
+  };
+}
+
+// ===== SMART ROUTER =====
+async function routeChat(messages: { role: 'system' | 'user' | 'assistant'; content: string }[]) {
+  const lastMessage = messages[messages.length - 1]?.content.toLowerCase() || '';
+  const complexKeywords = [
+    'full itinerary', 'multi-city', '2 weeks', '3 weeks',
+    'plan my entire', 'comprehensive guide', 'family trip',
+    'honeymoon', 'group of', 'accessible travel',
+  ];
+  const isComplex = complexKeywords.some(kw => lastMessage.includes(kw));
+
+  try {
+    if (isComplex) {
+      try {
+        return await chatWithGrok(messages);
+      } catch {
+        return await chatWithDeepSeek(messages);
+      }
+    }
+    return await chatWithDeepSeek(messages);
+  } catch {
+    try {
+      return await chatWithGrok(messages);
+    } catch {
+      return {
+        content: "I'm having trouble connecting right now. Please try again in a moment.",
+        provider: 'error',
+        responseTime: 0,
+      };
+    }
+  }
+}
+
+// ===== CHAT API ROUTE =====
 export async function POST(req: NextRequest) {
   try {
     const { message, conversationId } = await req.json();
@@ -24,7 +146,7 @@ export async function POST(req: NextRequest) {
     if (convoId) {
       const convo = await prisma.conversation.findUnique({
         where: { id: convoId },
-        include: { messages: { orderBy: { createdAt: 'asc' } }, preference: true },
+        include: { messages: { orderBy: { createdAt: 'asc' } } },
       });
       if (!convo) {
         return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
@@ -33,22 +155,6 @@ export async function POST(req: NextRequest) {
         role: m.role as 'user' | 'assistant',
         content: m.content,
       }));
-
-      // Add preference context if available
-      if (convo.preference) {
-        const p = convo.preference;
-        const parts = [];
-        if (p.budget) parts.push(`Budget: ${p.budget}`);
-        if (p.travelStyle) parts.push(`Style: ${p.travelStyle}`);
-        if (p.interests?.length) parts.push(`Interests: ${p.interests.join(', ')}`);
-        if (p.groupType) parts.push(`Group: ${p.groupType}`);
-        if (parts.length) {
-          previousMessages.push({
-            role: 'assistant',
-            content: `[User Profile noted: ${parts.join(' | ')}]`,
-          });
-        }
-      }
     } else {
       const convo = await prisma.conversation.create({
         data: { title: message.slice(0, 50) },
