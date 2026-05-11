@@ -5,13 +5,17 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
+    // Create tables one by one
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS conversations (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
         title TEXT,
         "createdAt" TIMESTAMP DEFAULT NOW(),
         "updatedAt" TIMESTAMP DEFAULT NOW()
-      );
+      )
+    `);
+
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS messages (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
         "conversationId" TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
@@ -20,7 +24,10 @@ export async function GET() {
         "aiProvider" TEXT,
         "responseTime" INTEGER,
         "createdAt" TIMESTAMP DEFAULT NOW()
-      );
+      )
+    `);
+
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS user_preferences (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
         "conversationId" TEXT NOT NULL UNIQUE REFERENCES conversations(id) ON DELETE CASCADE,
@@ -31,7 +38,10 @@ export async function GET() {
         mobility TEXT,
         "groupType" TEXT,
         "createdAt" TIMESTAMP DEFAULT NOW()
-      );
+      )
+    `);
+
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS destinations (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
@@ -46,12 +56,15 @@ export async function GET() {
         lat FLOAT,
         lng FLOAT,
         "createdAt" TIMESTAMP DEFAULT NOW()
-      );
-      CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages("conversationId");
-      CREATE INDEX IF NOT EXISTS idx_destinations_category ON destinations(category);
-      CREATE INDEX IF NOT EXISTS idx_destinations_location ON destinations(location);
+      )
     `);
 
+    // Create indexes
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages("conversationId")`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_destinations_category ON destinations(category)`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_destinations_location ON destinations(location)`);
+
+    // Seed destinations
     const existing = await prisma.destination.count();
     if (existing === 0) {
       await prisma.destination.createMany({ data: [
