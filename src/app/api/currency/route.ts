@@ -1,49 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
+import OpenAI from 'openai';
 
-const RATES: Record<string, number> = {
-  USD: 35.0,
-  EUR: 38.0,
-  GBP: 44.5,
-  AUD: 22.5,
-  CAD: 25.5,
-  INR: 0.42,
-  BDT: 0.29,
-  LKR: 0.11,
-  SGD: 26.0,
-  MYR: 7.8,
-  JPY: 0.23,
-  CNY: 4.8,
-  KRW: 0.024,
-  NZD: 20.5,
-  THB: 1,
-};
+const SYSTEM_PROMPT = `You are a Thailand currency and budget expert. Give exchange rates (approximate), typical costs in THB, and budget tips. Format as bullet points. Keep under 100 words.`;
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const amount = parseFloat(searchParams.get('amount') || '1');
-  const from = (searchParams.get('from') || 'USD').toUpperCase();
-  const to = (searchParams.get('to') || 'THB').toUpperCase();
-
-  const fromRate = RATES[from];
-  const toRate = RATES[to];
-
-  if (!fromRate || !toRate) {
-    return NextResponse.json(
-      { error: `Unsupported currency. Supported: ${Object.keys(RATES).join(', ')}` },
-      { status: 400 }
-    );
-  }
-
-  // Convert: amount in FROM -> THB -> TO
-  const inTHB = amount * fromRate;
-  const result = inTHB / toRate;
-
-  return NextResponse.json({
-    amount,
-    from,
-    to,
-    result: Math.round(result * 100) / 100,
-    rate: Math.round((fromRate / toRate) * 10000) / 10000,
-    disclaimer: 'Approximate rates. Check SuperRich or your bank for real-time rates.',
+function getGroqClient() {
+  return new OpenAI({
+    baseURL: 'https://api.groq.com/openai/v1',
+    apiKey: process.env.GROQ_API_KEY || 'missing',
   });
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { message } = await req.json();
+    const groq = getGroqClient();
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: message || 'What is the exchange rate for THB?' },
+      ],
+      temperature: 0.3,
+      max_tokens: 400,
+    });
+    return NextResponse.json({
+      content: response.choices[0]?.message?.content || 'No response',
+      provider: 'groq',
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
