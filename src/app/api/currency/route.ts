@@ -10,6 +10,27 @@ function getGroqClient() {
   });
 }
 
+export async function GET() {
+  try {
+    const groq = getGroqClient();
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: 'Current THB exchange rates and budget tips for travelers' },
+      ],
+      temperature: 0.3,
+      max_tokens: 400,
+    });
+    return NextResponse.json({
+      content: response.choices[0]?.message?.content || 'No response',
+      provider: 'groq',
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { message } = await req.json();
