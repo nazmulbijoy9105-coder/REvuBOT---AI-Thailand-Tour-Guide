@@ -51,14 +51,17 @@ If asked outside Thailand, redirect politely.
 If asked illegal, refuse politely.
 Always respect Thai culture.`;
 
-// ===== GROQ CLIENT (FREE TIER - LLAMA 3) =====
-const groq = new OpenAI({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
+// ===== LAZY GROQ CLIENT (fixes build error) =====
+function getGroqClient() {
+  return new OpenAI({
+    baseURL: 'https://api.groq.com/openai/v1',
+    apiKey: process.env.GROQ_API_KEY || 'missing',
+  });
+}
 
 async function chatWithGroq(messages: { role: 'system' | 'user' | 'assistant'; content: string }[]) {
   const start = Date.now();
+  const groq = getGroqClient();
   const response = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
@@ -123,7 +126,7 @@ export async function POST(req: NextRequest) {
       result = await chatWithGroq(chatMessages);
     } catch (error: any) {
       result = {
-        content: "⚠️ AI service is currently unavailable. Please check that the GROQ_API_KEY is set correctly in Vercel environment variables.",
+        content: "⚠️ AI service unavailable. Make sure GROQ_API_KEY is set in Vercel env vars. Get free key at https://console.groq.com",
         provider: 'error',
         responseTime: 0,
       };
