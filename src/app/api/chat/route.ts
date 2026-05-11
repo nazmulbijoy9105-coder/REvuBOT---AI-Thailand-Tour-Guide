@@ -51,16 +51,16 @@ If asked outside Thailand, redirect politely.
 If asked illegal, refuse politely.
 Always respect Thai culture.`;
 
-// ===== DEEPSEEK CLIENT =====
-const deepseek = new OpenAI({
-  baseURL: 'https://api.deepseek.com',
-  apiKey: process.env.DEEPSEEK_API_KEY,
+// ===== GROQ CLIENT (FREE TIER - LLAMA 3) =====
+const groq = new OpenAI({
+  baseURL: 'https://api.groq.com/openai/v1',
+  apiKey: process.env.GROQ_API_KEY,
 });
 
-async function chatWithDeepSeek(messages: { role: 'system' | 'user' | 'assistant'; content: string }[]) {
+async function chatWithGroq(messages: { role: 'system' | 'user' | 'assistant'; content: string }[]) {
   const start = Date.now();
-  const response = await deepseek.chat.completions.create({
-    model: 'deepseek-chat',
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
     messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
     temperature: 0.3,
     max_tokens: 800,
@@ -69,62 +69,9 @@ async function chatWithDeepSeek(messages: { role: 'system' | 'user' | 'assistant
   });
   return {
     content: response.choices[0]?.message?.content || 'Sorry, no response generated.',
-    provider: 'deepseek',
+    provider: 'groq-llama3',
     responseTime: Date.now() - start,
   };
-}
-
-// ===== GROK CLIENT =====
-const grok = new OpenAI({
-  baseURL: 'https://api.x.ai/v1',
-  apiKey: process.env.GROK_API_KEY,
-});
-
-async function chatWithGrok(messages: { role: 'system' | 'user' | 'assistant'; content: string }[]) {
-  const start = Date.now();
-  const response = await grok.chat.completions.create({
-    model: 'grok-3-mini',
-    messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
-    temperature: 0.3,
-    max_tokens: 1200,
-  });
-  return {
-    content: response.choices[0]?.message?.content || 'Sorry, no response generated.',
-    provider: 'grok',
-    responseTime: Date.now() - start,
-  };
-}
-
-// ===== SMART ROUTER =====
-async function routeChat(messages: { role: 'system' | 'user' | 'assistant'; content: string }[]) {
-  const lastMessage = messages[messages.length - 1]?.content.toLowerCase() || '';
-  const complexKeywords = [
-    'full itinerary', 'multi-city', '2 weeks', '3 weeks',
-    'plan my entire', 'comprehensive guide', 'family trip',
-    'honeymoon', 'group of', 'accessible travel',
-  ];
-  const isComplex = complexKeywords.some(kw => lastMessage.includes(kw));
-
-  try {
-    if (isComplex) {
-      try {
-        return await chatWithGrok(messages);
-      } catch {
-        return await chatWithDeepSeek(messages);
-      }
-    }
-    return await chatWithDeepSeek(messages);
-  } catch {
-    try {
-      return await chatWithGrok(messages);
-    } catch {
-      return {
-        content: "I'm having trouble connecting right now. Please try again in a moment.",
-        provider: 'error',
-        responseTime: 0,
-      };
-    }
-  }
 }
 
 // ===== CHAT API ROUTE =====
@@ -170,8 +117,17 @@ export async function POST(req: NextRequest) {
     // Build messages for AI (last 10 for context)
     const chatMessages = [...previousMessages.slice(-10), { role: 'user' as const, content: message }];
 
-    // Route to AI
-    const result = await routeChat(chatMessages);
+    // Call Groq (free)
+    let result;
+    try {
+      result = await chatWithGroq(chatMessages);
+    } catch (error: any) {
+      result = {
+        content: "⚠️ AI service is currently unavailable. Please check that the GROQ_API_KEY is set correctly in Vercel environment variables.",
+        provider: 'error',
+        responseTime: 0,
+      };
+    }
 
     // Save assistant message
     await prisma.message.create({
